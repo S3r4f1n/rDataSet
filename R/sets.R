@@ -1,36 +1,22 @@
-#' @Document This is a package to treat Data Sets as mathematical sets. Or that is where the inspiration comes from.
-#' The basic idea is to define a union, a setminus and a set intersection for data sets. 
-#' Further we think of Data sets, as a Data Frame (Tibble), with an addition of id cols.
-#' The id cols are similar to these you would expect in a sql datbase but with th further restriction
-#' that set operations are only possible on one-to-one relations. This is a deliberate choice to reduce
-#' surprising and confusing behaviour. If you want to expand a data set this should be done explicitly with e.g.
-#' a join, and not implicitly in a set operation.
-#'
-#' The idea is that each value is identified with a row_id (select cols) and col_id (column name). And a vlue is either
-#' present or abscent (is.na).
-#' Lets say we have data sets A and B
-#' the setminus A - B. Is the set A without the values which are also defined in B. E.g. if for the same row_id and col_id
-#' values are present in bot data sets A and B. It wont be contained in the output. If it is only present in B. It won't
-#' be in the output. Only if it is only in A it is in the output.
-#' 
-#' the set intersection A > B. Now only values which are present in both sets are in the output. More over values will be taken from A.
-#' B in this case is just a filter which decides which values of A are in the output
-#'
-#' the set union A + B. Returns all the values which are either present in A or in B. For values which are present in both
-#' the values are taken from A
-#'
-#' the set equality A == B. Is only defined on sets with the same ids. It throws an error if this missmatches. Further
-#' it returns a dataset of turth values. For each cell. This can be used to find missmatches in data.
-#'
-#' ids(A) returns the id cols of A
-#' vals(A) returns the value cols of A (everything else)
-#' dataset_build(df, ids) creates a dataset with the data from the df and the id cols defined in ids (vec of names).
+#' @keywords internal
+"_PACKAGE"
 
-library(dplyr)
+#' @import dplyr
+#' @import purrr
+NULL
 
-# this is heavly overbloated code, but it works and has little custom functions. Mostly the sanity checks are bloated
-# and some merging, and some filtering, and some whatever. I guess a propper implementation should use a C or Rust backend
-# tough i'm not sure if base R already gives the tools to do this basically at C time.
+#' Build a Dataset Object
+#'
+#' Creates a dataset object from a data frame by designating specific columns as ID columns.
+#' ID columns must uniquely identify each row (one-to-one relation).
+#'
+#' @param df A data frame containing the data.
+#' @param ids A character vector of column names to use as row identifiers.
+#' @return A dataset object (S3 class "dataset") with the `dataset_ids` attribute set.
+#' @export
+#' @examples
+#' df <- tibble::tibble(i = 1:5, value = c(10, NA, 30, NA, 50))
+#' ds <- dataset_build(df, ids = "i")
 dataset_build <- function(df, ids){
   if(!is.character(ids)) stop("ids must be vector of character")
   if(!is.data.frame(df)) stop("the df must be a dataframe")
@@ -40,6 +26,15 @@ dataset_build <- function(df, ids){
   dataset_integrity(df)
 }
 
+#' Validate Dataset Integrity
+#'
+#' Internal function to verify that a dataset object is valid.
+#' Checks that the ID columns uniquely identify each row.
+#'
+#' @param dataset A dataset object to validate.
+#' @return The input dataset (invisibly) if valid.
+#' @details If the dataset is invalid.
+#' @keywords internal
 dataset_integrity <- function(dataset){
   if(!"dataset" %in% class(dataset)) stop("dataset must be of instance dataset")
   ids <- attr(dataset, "dataset_ids")
@@ -53,7 +48,17 @@ dataset_integrity <- function(dataset){
   dataset
 }
 
-
+#' Set Difference
+#'
+#' Returns values from dataset `a` that are not present in dataset `b`.
+#' A value is considered present if it is not `NA`. For each cell identified by
+#' (row_id, col_id), the value from `a` is kept only if the corresponding cell in `b` is `NA`.
+#'
+#' @param a A dataset object (minuend).
+#' @param b A dataset object (subtrahend).
+#' @return A dataset containing values from `a` where corresponding values in `b` are `NA`.
+#' @details If the ID columns of `a` and `b` do not match.
+#' @keywords internal
 dataset_minus <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
   id_b <- attr(b, "dataset_ids")
@@ -82,6 +87,18 @@ dataset_minus <- function(a, b) {
   dataset_integrity(out)
 }
 
+#' Set Intersection
+#'
+#' Returns values from dataset `a` that are also present in dataset `b`.
+#' A value is considered present if it is not `NA`. For each cell identified by
+#' (row_id, col_id), the value from `a` is kept only if the corresponding cell in `b` is not `NA`.
+#' Dataset `b` acts as a filter determining which values from `a` appear in the result.
+#'
+#' @param a A dataset object (left operand).
+#' @param b A dataset object (right operand, used as filter).
+#' @return A dataset containing values from `a` where corresponding values in `b` are not `NA`.
+#' @details If the ID columns of `a` and `b` do not match.
+#' @keywords internal
 dataset_intersect <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
   id_b <- attr(b, "dataset_ids")
@@ -111,6 +128,17 @@ dataset_intersect <- function(a, b) {
   dataset_integrity(out)
 }
 
+#' Set Union
+#'
+#' Returns all values from either dataset `a` or dataset `b`.
+#' For cells present in both datasets, the value from `a` takes precedence.
+#' A value is considered present if it is not `NA`.
+#'
+#' @param a A dataset object (left operand, takes precedence).
+#' @param b A dataset object (right operand).
+#' @return A dataset containing values from `a` where available, otherwise from `b`.
+#' @details If the ID columns of `a` and `b` do not match.
+#' @keywords internal
 dataset_union <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
   id_b <- attr(b, "dataset_ids")
@@ -140,6 +168,21 @@ dataset_union <- function(a, b) {
   dataset_integrity(out)
 }
 
+#' Set Equality
+#'
+#' Compares two datasets cell-by-cell and returns a dataset of logical values.
+#' For each cell identified by (row_id, col_id):
+#' \itemize{
+#'   \item Returns `TRUE` if both cells have equal non-NA values.
+#'   \item Returns `FALSE` if one cell is `NA` and the other is not, or if values differ.
+#'   \item Returns `NA` if both cells are `NA`.
+#' }
+#'
+#' @param a A dataset object (left operand).
+#' @param b A dataset object (right operand).
+#' @return A dataset of logical values indicating cell-wise equality.
+#' @details If the ID columns do not match, or if the datasets have different dimensions.
+#' @keywords internal
 dataset_equality <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
   id_b <- attr(b, "dataset_ids")
@@ -174,29 +217,48 @@ dataset_equality <- function(a, b) {
   dataset_integrity(out)
 }
 
+#' Extract Value Columns
+#'
+#' Returns all non-ID columns from a dataset.
+#'
+#' @param dataset A dataset object.
+#' @return A data frame containing only the value columns (non-ID columns).
+#' @export
+#' @examples
+#' ds <- dataset_build(tibble::tibble(i = 1:3, value = c(10, NA, 30)), ids = "i")
+#' vals(ds)
 vals <- function(dataset){
   ids <- attr(dataset, "dataset_ids")
   dataset %>% select(-all_of(ids))
 }
 
+#' Extract ID Columns
+#'
+#' Returns the ID columns from a dataset.
+#'
+#' @param dataset A dataset object.
+#' @return A data frame containing only the ID columns.
+#' @export
+#' @examples
+#' ds <- dataset_build(tibble::tibble(i = 1:3, value = c(10, NA, 30)), ids = "i")
+#' ids(ds)
 ids <- function(dataset){
   ids <- attr(dataset, "dataset_ids")
   dataset %>% select(all_of(ids))
 }
 
-# updating the arithmetics
 #' @export
+#' @rdname dataset_minus
 "-.dataset" <- function(a, b) dataset_minus(a,b)
+
 #' @export
+#' @rdname dataset_intersect
 ">.dataset" <- function(a, b) dataset_intersect(a,b)
+
 #' @export
+#' @rdname dataset_union
 "+.dataset" <- function(a, b) dataset_union(a,b)
+
 #' @export
+#' @rdname dataset_equality
 "==.dataset" <- function(a, b) dataset_equality(a,b)
-
-# examples
-# A <- dataset_build(tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10)), "i")
-# B <- dataset_build(tibble(i = 1:10, b = na_if(1:10, 3)), "i")
-# C <- dataset_build(tibble(i = 1:5, b = 10:6, c = 2), "i")
-
-# A - B

@@ -18,37 +18,108 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of rDataSet is to ...
+The goal of rDataSet is to treat data frames as mathematical sets. It provides set-theoretic operations (union, intersection, difference, equality) for data frames where values are identified by row IDs and column names, and presence/absence is determined by `NA` values.
 
 ## Installation
 
-You can install the development version of rDataSet like so:
+You can install the development version of rDataSet from local source like so:
 
 ``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+devtools::install("/path/to/rDataSet")
 ```
+
+## Overview
+
+rDataSet introduces a `dataset` S3 class that extends data frames with designated ID columns. Set operations work on a cell-by-cell basis:
+
+- **ID columns** uniquely identify each row (one-to-one relation)
+- **Value presence** is determined by `is.na()` - a value is present if not `NA`
+- **Set operations** compare cells at the same (row_id, col_id) position
+
+## Set Operations
+
+| Operation | Syntax | Description |
+|-----------|--------|-------------|
+| Difference | `A - B` | Values in A where corresponding cells in B are `NA` |
+| Intersection | `A > B` | Values in A where corresponding cells in B are not `NA` |
+| Union | `A + B` | Values from A, falling back to B where A has `NA` |
+| Equality | `A == B` | Cell-wise comparison returning logical values |
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
-
 ```{r example}
 library(rDataSet)
-## basic example code
+library(tibble)
+library(dplyr)
+
+# Create two datasets with 'i' as the ID column
+A <- dataset_build(
+  tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10)),
+  ids = "i"
+)
+
+B <- dataset_build(
+  tibble(i = 1:10, b = na_if(1:10, 3)),
+  ids = "i"
+)
+
+# View the datasets
+A
+B
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+### Set Difference
 
-```{r cars}
-summary(cars)
+Keep values from A where B has `NA`:
+
+```{r difference}
+A - B
 ```
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+### Set Intersection
 
-You can also embed plots, for example:
+Keep values from A where B has non-`NA` values (B acts as a filter):
 
-```{r pressure, echo = FALSE}
-plot(pressure)
+```{r intersection}
+A > B
 ```
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+### Set Union
+
+Combine values from both datasets, with A taking precedence:
+
+```{r union}
+A + B
+```
+
+### Set Equality
+
+Compare datasets cell-by-cell:
+
+```{r equality}
+A == A  # All TRUE (or NA for missing values)
+A == B  # Shows which cells match
+```
+
+## Helper Functions
+
+```{r helpers}
+# Extract ID columns
+ids(A)
+
+# Extract value columns (non-ID columns)
+vals(A)
+```
+
+## Mathematical Properties
+
+The set operations satisfy the fundamental identity: `a = (a ∩ b) ∪ (a \ b)`
+
+```{r identity}
+# Verify: A == (A > B) + (A - B)
+all(vals(A == (A > B) + (A - B)), na.rm = TRUE)
+```
+
+## License
+
+GPL (>= 3)
