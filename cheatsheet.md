@@ -10,11 +10,12 @@ use_gpl3_license()
 ## Dependencies
 **Import** packages that your package requires to work. R will install them when it installs your package. Add with
 ```r
-use_package(pkgname, type = "imports")
+use_package("dplyr", type = "imports")
+use_package("purrr", type = "imports")
 ```
 **Suggest** packages that developers of your package need. Users can install or not, as they like. Add with
 ```r
-use_package(pkgname, type = "suggests")
+use_package("testthat", type = "suggests")
 ```
 
 ## During Developement
