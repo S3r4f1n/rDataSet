@@ -185,9 +185,13 @@ ids <- function(dataset){
 }
 
 # updating the arithmetics
+#' @export
 "-.dataset" <- function(a, b) dataset_minus(a,b)
+#' @export
 ">.dataset" <- function(a, b) dataset_intersect(a,b)
+#' @export
 "+.dataset" <- function(a, b) dataset_union(a,b)
+#' @export
 "==.dataset" <- function(a, b) dataset_equality(a,b)
 
 # examples
