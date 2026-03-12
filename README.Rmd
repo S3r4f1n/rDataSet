@@ -26,6 +26,8 @@ You can install the development version of rDataSet from local source like so:
 
 ``` r
 devtools::install("/path/to/rDataSet")
+# or with
+install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 ```
 
 ## Overview
@@ -38,12 +40,19 @@ rDataSet introduces a `dataset` S3 class that extends data frames with designate
 
 ## Set Operations
 
-| Operation | Syntax | Description |
-|-----------|--------|-------------|
-| Difference | `A - B` | Values in A where corresponding cells in B are `NA` |
-| Intersection | `A > B` | Values in A where corresponding cells in B are not `NA` |
-| Union | `A + B` | Values from A, falling back to B where A has `NA` |
-| Equality | `A == B` | Cell-wise comparison returning logical values |
+Each set operation works in two stages:
+
+1. **Row/Column Alignment**: Determines which rows and columns appear in the result
+2. **Value Operation**: Decides which values to keep for each cell
+
+| Operation | Rows in Result | Columns in Result | Value Operation |
+|-----------|----------------|-------------------|-----------------|
+| Difference (`A - B`) | All rows from A | All value columns from A | Keep values from A where B has `NA` |
+| Intersection (`A > B`) | Only rows present in **both** A and B (inner join on IDs) | Only common value columns | Keep values from A where B has non-`NA` |
+| Union (`A + B`) | All rows from both A and B (full join on IDs) | All value columns from both | Use A's value; fall back to B where A has `NA` |
+| Equality (`A == B`) | Must match exactly (same rows) | Must match exactly (same columns) | `TRUE` if equal, `FALSE` if different, `NA` if both missing |
+
+**Note**: ID columns must match between datasets for all operations. Value columns that exist in only one dataset are handled according to the join type (dropped, kept, or error).
 
 ## Example
 
@@ -52,7 +61,7 @@ library(rDataSet)
 library(tibble)
 library(dplyr)
 
-# Create two datasets with 'i' as the ID column
+# Create datasets with 'i' as the ID column
 A <- dataset_build(
   tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10)),
   ids = "i"
@@ -63,42 +72,73 @@ B <- dataset_build(
   ids = "i"
 )
 
+# Dataset C has fewer rows (1:5) and an extra column 'c'
+C <- dataset_build(
+  tibble(i = 1:5, b = 10:6, c = 2),
+  ids = "i"
+)
+
 # View the datasets
 A
 B
+C
 ```
 
 ### Set Difference
 
-Keep values from A where B has `NA`:
+Keep values from A where B has `NA` (uses left join, so all rows from A):
 
 ```{r difference}
 A - B
 ```
 
+Difference with C shows how non-common columns are dropped:
+
+```{r difference-c}
+A - C  # Only column 'b' remains (common), row ids 1:5 from A
+```
+
 ### Set Intersection
 
-Keep values from A where B has non-`NA` values (B acts as a filter):
+Keep values from A where B has non-`NA` values (inner join on rows, common columns only):
 
 ```{r intersection}
 A > B
 ```
 
+Intersection with C - note only rows 1:5 and column 'b' are kept:
+
+```{r intersection-c}
+A > C
+```
+
 ### Set Union
 
-Combine values from both datasets, with A taking precedence:
+Combine values from both datasets (full join on rows, all columns):
 
 ```{r union}
 A + B
 ```
 
+Union with C - includes all rows (1:10) and all columns (b, c):
+
+```{r union-c}
+A + C
+```
+
 ### Set Equality
 
-Compare datasets cell-by-cell:
+Compare datasets cell-by-cell (requires matching rows and columns):
 
 ```{r equality}
 A == A  # All TRUE (or NA for missing values)
 A == B  # Shows which cells match
+```
+
+Equality fails with mismatched rows or columns:
+
+```{r equality-error, error = TRUE}
+A == C  # Error: rows and columns don't match
 ```
 
 ## Helper Functions
