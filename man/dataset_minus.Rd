@@ -19,10 +19,20 @@ A dataset containing values from \code{a} where corresponding values in \code{b}
 }
 \description{
 Returns values from dataset \code{a} that are not present in dataset \code{b}.
-A value is considered present if it is not \code{NA}. For each cell identified by
-(row_id, col_id), the value from \code{a} is kept only if the corresponding cell in \code{b} is \code{NA}.
+A value is considered present if it is not \code{NA}.
 }
 \details{
-If the ID columns of \code{a} and \code{b} do not match.
+\strong{Row/Column Handling:}
+\itemize{
+\item \strong{Rows:} All rows from \code{a} are retained (left join on ID columns)
+\item \strong{Columns:} Only value columns that exist in both datasets are considered; ID columns must match
+}
+
+\strong{Value Operation:}
+\itemize{
+\item For each cell at (row_id, col_id), the value from \code{a} is kept only if the corresponding cell in \code{b} is \code{NA}
+}
+
+Error if ID columns of \code{a} and \code{b} do not match.
 }
 \keyword{internal}

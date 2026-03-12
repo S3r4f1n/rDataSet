@@ -51,13 +51,19 @@ dataset_integrity <- function(dataset){
 #' Set Difference
 #'
 #' Returns values from dataset `a` that are not present in dataset `b`.
-#' A value is considered present if it is not `NA`. For each cell identified by
-#' (row_id, col_id), the value from `a` is kept only if the corresponding cell in `b` is `NA`.
+#' A value is considered present if it is not `NA`.
+#'
+#' **Row/Column Handling:**
+#' - **Rows:** All rows from `a` are retained (left join on ID columns)
+#' - **Columns:** Only value columns that exist in both datasets are considered; ID columns must match
+#'
+#' **Value Operation:**
+#' - For each cell at (row_id, col_id), the value from `a` is kept only if the corresponding cell in `b` is `NA`
 #'
 #' @param a A dataset object (minuend).
 #' @param b A dataset object (subtrahend).
 #' @return A dataset containing values from `a` where corresponding values in `b` are `NA`.
-#' @details If the ID columns of `a` and `b` do not match.
+#' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_minus <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
@@ -90,14 +96,20 @@ dataset_minus <- function(a, b) {
 #' Set Intersection
 #'
 #' Returns values from dataset `a` that are also present in dataset `b`.
-#' A value is considered present if it is not `NA`. For each cell identified by
-#' (row_id, col_id), the value from `a` is kept only if the corresponding cell in `b` is not `NA`.
-#' Dataset `b` acts as a filter determining which values from `a` appear in the result.
+#' A value is considered present if it is not `NA`. Dataset `b` acts as a filter
+#' determining which values from `a` appear in the result.
+#'
+#' **Row/Column Handling:**
+#' - **Rows:** Only rows present in both `a` and `b` (inner join on ID columns)
+#' - **Columns:** Only value columns that exist in both datasets; ID columns must match
+#'
+#' **Value Operation:**
+#' - For each cell at (row_id, col_id), the value from `a` is kept only if the corresponding cell in `b` is not `NA`
 #'
 #' @param a A dataset object (left operand).
 #' @param b A dataset object (right operand, used as filter).
 #' @return A dataset containing values from `a` where corresponding values in `b` are not `NA`.
-#' @details If the ID columns of `a` and `b` do not match.
+#' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_intersect <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
@@ -132,12 +144,19 @@ dataset_intersect <- function(a, b) {
 #'
 #' Returns all values from either dataset `a` or dataset `b`.
 #' For cells present in both datasets, the value from `a` takes precedence.
-#' A value is considered present if it is not `NA`.
+#'
+#' **Row/Column Handling:**
+#' - **Rows:** All rows from both `a` and `b` (full join on ID columns)
+#' - **Columns:** All value columns from both datasets; ID columns must match
+#'
+#' **Value Operation:**
+#' - For each cell at (row_id, col_id), uses the value from `a` if present; otherwise falls back to `b`
+#' - A value is considered present if it is not `NA`
 #'
 #' @param a A dataset object (left operand, takes precedence).
 #' @param b A dataset object (right operand).
 #' @return A dataset containing values from `a` where available, otherwise from `b`.
-#' @details If the ID columns of `a` and `b` do not match.
+#' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_union <- function(a, b) {
   id_a <- attr(a, "dataset_ids")
@@ -171,17 +190,22 @@ dataset_union <- function(a, b) {
 #' Set Equality
 #'
 #' Compares two datasets cell-by-cell and returns a dataset of logical values.
-#' For each cell identified by (row_id, col_id):
-#' \itemize{
-#'   \item Returns `TRUE` if both cells have equal non-NA values.
-#'   \item Returns `FALSE` if one cell is `NA` and the other is not, or if values differ.
-#'   \item Returns `NA` if both cells are `NA`.
-#' }
+#'
+#' **Row/Column Handling:**
+#' - **Rows:** Must match exactly - both datasets must have the same rows (by ID)
+#' - **Columns:** Must match exactly - both datasets must have the same value columns
+#' - Throws an error if rows or columns do not align
+#'
+#' **Value Operation:**
+#' For each cell at (row_id, col_id):
+#' - Returns `TRUE` if both cells have equal non-`NA` values
+#' - Returns `FALSE` if one cell is `NA` and the other is not, or if values differ
+#' - Returns `NA` if both cells are `NA`
 #'
 #' @param a A dataset object (left operand).
 #' @param b A dataset object (right operand).
 #' @return A dataset of logical values indicating cell-wise equality.
-#' @details If the ID columns do not match, or if the datasets have different dimensions.
+#' @details Error if ID columns do not match, or if datasets have different dimensions.
 #' @keywords internal
 dataset_equality <- function(a, b) {
   id_a <- attr(a, "dataset_ids")

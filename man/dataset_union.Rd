@@ -20,9 +20,20 @@ A dataset containing values from \code{a} where available, otherwise from \code{
 \description{
 Returns all values from either dataset \code{a} or dataset \code{b}.
 For cells present in both datasets, the value from \code{a} takes precedence.
-A value is considered present if it is not \code{NA}.
 }
 \details{
-If the ID columns of \code{a} and \code{b} do not match.
+\strong{Row/Column Handling:}
+\itemize{
+\item \strong{Rows:} All rows from both \code{a} and \code{b} (full join on ID columns)
+\item \strong{Columns:} All value columns from both datasets; ID columns must match
+}
+
+\strong{Value Operation:}
+\itemize{
+\item For each cell at (row_id, col_id), uses the value from \code{a} if present; otherwise falls back to \code{b}
+\item A value is considered present if it is not \code{NA}
+}
+
+Error if ID columns of \code{a} and \code{b} do not match.
 }
 \keyword{internal}

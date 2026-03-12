@@ -19,14 +19,23 @@ A dataset of logical values indicating cell-wise equality.
 }
 \description{
 Compares two datasets cell-by-cell and returns a dataset of logical values.
-For each cell identified by (row_id, col_id):
-\itemize{
-\item Returns \code{TRUE} if both cells have equal non-NA values.
-\item Returns \code{FALSE} if one cell is \code{NA} and the other is not, or if values differ.
-\item Returns \code{NA} if both cells are \code{NA}.
-}
 }
 \details{
-If the ID columns do not match, or if the datasets have different dimensions.
+\strong{Row/Column Handling:}
+\itemize{
+\item \strong{Rows:} Must match exactly - both datasets must have the same rows (by ID)
+\item \strong{Columns:} Must match exactly - both datasets must have the same value columns
+\item Throws an error if rows or columns do not align
+}
+
+\strong{Value Operation:}
+For each cell at (row_id, col_id):
+\itemize{
+\item Returns \code{TRUE} if both cells have equal non-\code{NA} values
+\item Returns \code{FALSE} if one cell is \code{NA} and the other is not, or if values differ
+\item Returns \code{NA} if both cells are \code{NA}
+}
+
+Error if ID columns do not match, or if datasets have different dimensions.
 }
 \keyword{internal}
