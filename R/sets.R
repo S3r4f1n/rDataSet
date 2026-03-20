@@ -286,3 +286,4 @@ ids <- function(dataset){
 #' @export
 #' @rdname dataset_equality
 "==.dataset" <- function(a, b) dataset_equality(a,b)
+

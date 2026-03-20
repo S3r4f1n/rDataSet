@@ -19,7 +19,7 @@ a flat dataset object.
 }
 \examples{
 ds <- dataset_build(
-  tibble::tibble(id = 1:3, group = c("A", "A", "B"), value = c(10, 20, 30)),
+  tibble::tibble(group = c("A", "B"), value = c(10, 20)),
   ids = "group"
 )
 nested <- dataset_nest(ds)

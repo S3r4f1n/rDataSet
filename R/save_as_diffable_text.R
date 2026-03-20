@@ -100,7 +100,7 @@ dataset_collapse_map <- function(dataset) {
 #' @param collapse_map Tibble mapping variables to their group levels
 #' @return A nested list structure
 #' @keywords internal
-nest <- function(data, ids, collapse_map) {
+nest <- function(data, ids, collapse_map, invert_innerlayer = TRUE) {
   curr_id_name <- ids[1]
   curr_id <- factor(data[[curr_id_name]], levels = unique(data[[curr_id_name]]))
 
@@ -121,10 +121,14 @@ nest <- function(data, ids, collapse_map) {
 
   # Recurse into deeper ID levels or transpose leaf data
   out <- if (length(ids) > 1){
-    purrr::map(split(inner, curr_id), ~ nest(., ids[-1], collapse_map))
+    purrr::map(split(inner, curr_id), ~ nest(., ids[-1], collapse_map, invert_innerlayer))
   } else {
     inner %>% purrr::transpose()
   }
+
+  if (length(ids) == 1 & invert_innerlayer) return(c(collapse,
+    purrr::map(inner, ~ setNames(as.list(.), as.character(curr_id)))
+  ))
 
   c(collapse, setNames(out, levels(curr_id)))
 }
@@ -147,7 +151,7 @@ nest <- function(data, ids, collapse_map) {
 #' @export
 #' @examples
 #' ds <- dataset_build(
-#'   tibble::tibble(id = 1:4, group = c("A", "A", "B", "B"), value = c(10, 20, 30, 40)),
+#'   tibble::tibble(group = c("A", "B"), value = c(10, 20)),
 #'   ids = "group"
 #' )
 #' result <- dataset_nest(ds)
@@ -188,6 +192,10 @@ dataset_nest <- function(dataset, collapse_map = NULL) {
   list(metadata = metadata, data = data)
 }
 
+# ##############################
+# from here on its complete AI work. some might be tempted to say slope, but it works a bit at least
+# ##############################
+# 
 #' Infer R type from JSON-parsed values
 #'
 #' Attempts to infer the appropriate R type for a vector of values that may
@@ -249,6 +257,9 @@ infer_type <- function(values) {
 #' data frame. It traverses the nested structure and reconstructs rows by
 #' combining ID values from the hierarchy with leaf-level variable values.
 #'
+#' Handles both regular nesting and inverted inner-layer format where variables
+#' are at the top level and ID values are keys within each variable.
+#'
 #' @param data Nested data tree to unnest
 #' @param ids ID column names in order of nesting
 #' @param variables Value column names
@@ -256,6 +267,37 @@ infer_type <- function(values) {
 #' @return A data frame with reconstructed rows
 #' @keywords internal
 unnest_tree <- function(data, ids, variables, current_ids = list()) {
+  # Check if this is the fully inverted structure (single-level IDs)
+  # In this case, variables are at top level, each containing ID->value mappings
+  is_fully_inverted <- length(ids) == 0 && all(variables %in% names(data))
+
+  if (is_fully_inverted) {
+    # Collect all unique ID keys across all variables (important for TOML which omits NA values)
+    all_id_keys <- unique(unlist(purrr::map(data[variables], function(v) {
+      if (is.list(v)) names(v) else NULL
+    })))
+
+    # Sort ID keys numerically if possible, otherwise alphabetically
+    suppressWarnings({
+      numeric_keys <- as.numeric(all_id_keys)
+      if (!any(is.na(numeric_keys))) {
+        all_id_keys <- all_id_keys[order(numeric_keys)]
+      }
+    })
+
+    # Build rows from the inverted structure
+    rows_list <- purrr::map(all_id_keys, function(id_key) {
+      row_data <- current_ids
+      for (var in variables) {
+        val <- data[[var]][[id_key]]
+        row_data[[var]] <- if (is.null(val)) NA else infer_type(list(val))[[1]]
+      }
+      tibble::as_tibble(row_data)
+    })
+
+    return(dplyr::bind_rows(rows_list))
+  }
+
   if (length(ids) == 0) {
     # Leaf level: extract variable values and normalize types
     row_data <- current_ids
@@ -278,7 +320,48 @@ unnest_tree <- function(data, ids, variables, current_ids = list()) {
   var_names <- intersect(names(data), variables)
   entry_names <- setdiff(names(data), variables)
 
-  # Process each entry recursively
+  # Check if this is the innermost level with inverted structure
+  # (multi-level IDs where innermost level has variables containing ID->value)
+  # Detection: no remaining IDs, no nested entries, and at least one variable is a list (inverted)
+  is_inner_inverted <- length(remaining_ids) == 0 && length(var_names) > 0 &&
+    length(entry_names) == 0 && any(purrr::map_lgl(data[var_names], is.list))
+
+  if (is_inner_inverted) {
+    # Inverted structure at innermost level: variables contain ID->value mappings
+    # Collect all unique ID keys across all variables (important for TOML which omits NA values)
+    all_id_keys <- unique(unlist(purrr::map(data[var_names], function(v) {
+      if (is.list(v)) names(v) else NULL
+    })))
+
+    # Sort ID keys numerically if possible, otherwise alphabetically
+    suppressWarnings({
+      numeric_keys <- as.numeric(all_id_keys)
+      if (!any(is.na(numeric_keys))) {
+        all_id_keys <- all_id_keys[order(numeric_keys)]
+      }
+    })
+
+    # Build rows from the inverted structure
+    rows_list <- purrr::map(all_id_keys, function(id_key) {
+      row_data <- c(current_ids, setNames(list(id_key), curr_id_name))
+      for (var in var_names) {
+        var_val <- data[[var]]
+        # Check if this variable is inverted (list) or constant (scalar)
+        if (is.list(var_val)) {
+          val <- var_val[[id_key]]
+          row_data[[var]] <- if (is.null(val)) NA else infer_type(list(val))[[1]]
+        } else {
+          # Constant variable - same value for all rows at this level
+          row_data[[var]] <- var_val
+        }
+      }
+      tibble::as_tibble(row_data)
+    })
+
+    return(dplyr::bind_rows(rows_list))
+  }
+
+  # Process each entry recursively (standard structure)
   rows <- purrr::map2_df(
     entry_names,
     data[entry_names],
@@ -316,7 +399,7 @@ unnest_tree <- function(data, ids, variables, current_ids = list()) {
 #' @export
 #' @examples
 #' ds <- dataset_build(
-#'   tibble::tibble(id = 1:3, group = c("A", "A", "B"), value = c(10, 20, 30)),
+#'   tibble::tibble(group = c("A", "B"), value = c(10, 20)),
 #'   ids = "group"
 #' )
 #' nested <- dataset_nest(ds)

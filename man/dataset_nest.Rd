@@ -28,7 +28,7 @@ as attributes at the appropriate nesting level.
 }
 \examples{
 ds <- dataset_build(
-  tibble::tibble(id = 1:4, group = c("A", "A", "B", "B"), value = c(10, 20, 30, 40)),
+  tibble::tibble(group = c("A", "B"), value = c(10, 20)),
   ids = "group"
 )
 result <- dataset_nest(ds)

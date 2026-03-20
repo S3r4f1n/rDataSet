@@ -1,4 +1,6 @@
-
+# @todo toml should be making use of the [level.two] notation to reduce on {} brackets. but the lib does not do that
+# maybe do a little hack when writing. (flattening the data by one) and reading should work fine then
+# 
 
 #' Save and Load Datasets
 #'
@@ -49,7 +51,7 @@ dataset_save <- function(dataset, path, type = NULL) {
     if (!requireNamespace("tomledit", quietly = TRUE)) {
       stop("TOML writing requires the 'tomledit' package. Install with: install.packages('tomledit')")
     }
-    tomledit::write_toml(nested, path)
+    tomledit::write_toml(tomledit::as_toml(nested), path)
   }
 
   invisible(nested)
@@ -90,7 +92,7 @@ dataset_read <- function(path, type = NULL) {
     if (!requireNamespace("tomledit", quietly = TRUE)) {
       stop("TOML support requires the 'tomledit' package. Install with: install.packages('tomledit')")
     }
-    nested <- tomledit::read_toml(path)
+    nested <- tomledit::from_toml(tomledit::read_toml(path))
   }
 
   dataset_unnest(nested)

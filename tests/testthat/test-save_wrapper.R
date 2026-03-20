@@ -212,12 +212,11 @@ test_that("JSON roundtrip preserves hierarchical dataset", {
 # TOML roundtrip tests
 # =============================================================================
 
-# Note: TOML writing requires tomledit package which needs data in special
-# Toml object format. TOML reading works fine with tomledit::read_toml()
+# Note: TOML support requires the tomledit package.
+# TOML uses inverted structure for readability and handles NA values
+# by omitting them (they are restored on read).
 
 test_that("TOML roundtrip preserves simple dataset", {
-  skip("TOML writing requires tomledit with special Toml object format")
-
   tmp <- tempfile(fileext = ".toml")
 
   dataset_save(ds_simple, tmp)
@@ -233,8 +232,6 @@ test_that("TOML roundtrip preserves simple dataset", {
 })
 
 test_that("TOML roundtrip preserves mixed data types", {
-  skip("TOML writing requires tomledit with special Toml object format")
-
   tmp <- tempfile(fileext = ".toml")
 
   dataset_save(ds_mixed, tmp)
@@ -250,8 +247,6 @@ test_that("TOML roundtrip preserves mixed data types", {
 })
 
 test_that("TOML roundtrip preserves NA patterns", {
-  skip("TOML writing requires tomledit with special Toml object format")
-
   tmp <- tempfile(fileext = ".toml")
 
   dataset_save(ds_mixed, tmp)
@@ -266,8 +261,6 @@ test_that("TOML roundtrip preserves NA patterns", {
 })
 
 test_that("TOML roundtrip preserves hierarchical dataset", {
-  skip("TOML writing requires tomledit with special Toml object format")
-
   tmp <- tempfile(fileext = ".toml")
 
   dataset_save(ds_hierarchical, tmp)
@@ -282,13 +275,12 @@ test_that("TOML roundtrip preserves hierarchical dataset", {
 })
 
 test_that("TOML file is valid TOML syntax", {
-  skip("TOML writing requires tomledit with special Toml object format")
-
   tmp <- tempfile(fileext = ".toml")
   dataset_save(ds_simple, tmp)
 
-  # Verify it can be parsed by tomledit
-  parsed <- tomledit::read_toml(tmp)
+  # Verify it can be parsed by tomledit and converted to list
+  toml_obj <- tomledit::read_toml(tmp)
+  parsed <- tomledit::from_toml(toml_obj)
   expect_type(parsed, "list")
   expect_named(parsed, c("metadata", "data"))
 
@@ -300,8 +292,6 @@ test_that("TOML file is valid TOML syntax", {
 # =============================================================================
 
 test_that("JSON and TOML produce equivalent results", {
-  skip("TOML writing requires tomledit with special Toml object format")
-
   tmp_json <- tempfile(fileext = ".json")
   tmp_toml <- tempfile(fileext = ".toml")
 

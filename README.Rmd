@@ -20,6 +20,9 @@ knitr::opts_chunk$set(
 
 The goal of rDataSet is to treat data frames as mathematical sets. It provides set-theoretic operations (union, intersection, difference, equality) for data frames where values are identified by row IDs and column names, and presence/absence is determined by `NA` values.
 
+On top of Operations, Datasets support writing and reading to json, toml files. With the goal of having humand readable
+Data represntations which don't relay on table represnataions. (as there is a lack of decent diffing and viewing for such data, at least thats how i perceive it)
+
 ## Installation
 
 You can install the development version of rDataSet from local source like so:

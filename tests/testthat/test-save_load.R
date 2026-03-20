@@ -112,9 +112,15 @@ test_that("dataset_nest metadata contains structure mapping", {
 test_that("dataset_nest preserves all data", {
   result <- dataset_nest(ds_simple)
 
-  # Count leaf values in nested structure (each row becomes a list element)
-  # The data structure is a named list with one entry per row
-  expect_length(result$data, nrow(ds_simple))
+  # With inverted structure, data is organized by variables
+  # Each variable contains a mapping from ID to value
+  expect_type(result$data, "list")
+  expect_length(result$data, length(result$metadata$variables))
+
+  # Each variable should have entries for all rows
+  for (var in result$metadata$variables) {
+    expect_length(result$data[[var]], nrow(ds_simple))
+  }
 })
 
 test_that("dataset_nest with hierarchical IDs creates nested structure", {
@@ -129,10 +135,15 @@ test_that("dataset_nest with hierarchical IDs creates nested structure", {
 test_that("dataset_nest preserves NA values in structure", {
   result <- dataset_nest(ds_with_nas)
 
-  # The nested structure should preserve NA values
-  # Check that we have the right number of leaf nodes
+  # With inverted structure, data is organized by variables
+  # Each variable contains a mapping from ID to value
   expect_type(result$data, "list")
-  expect_length(result$data, 4)  # 4 rows
+  expect_length(result$data, length(result$metadata$variables))
+
+  # Each variable should have entries for all rows
+  for (var in result$metadata$variables) {
+    expect_length(result$data[[var]], 4)  # 4 rows
+  }
 })
 
 test_that("dataset_nest with pre-computed collapse_map works", {
@@ -186,8 +197,12 @@ test_that("JSON output handles NA values correctly", {
   expect_type(parsed, "list")
   expect_named(parsed, c("metadata", "data"))
 
-  # The data structure should have entries for all 4 rows
-  expect_length(parsed$data, 4)
+  # With inverted structure, data is organized by variables
+  # Each variable should have entries for all 4 rows
+  expect_type(parsed$data, "list")
+  for (var in parsed$metadata$variables) {
+    expect_length(parsed$data[[var]], 4)
+  }
 })
 
 test_that("complex hierarchical structure serializes correctly", {
@@ -252,7 +267,12 @@ test_that("large dataset can be nested", {
 
   result <- dataset_nest(ds_large)
   expect_type(result$data, "list")
-  expect_length(result$data, 100)
+  # With inverted structure, data is organized by variables
+  expect_length(result$data, length(result$metadata$variables))
+  # Each variable should have entries for all 100 rows
+  for (var in result$metadata$variables) {
+    expect_length(result$data[[var]], 100)
+  }
 })
 
 # =============================================================================
