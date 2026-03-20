@@ -11,6 +11,8 @@ RoxygenNote: 7.3.2
 Suggests: 
     testthat
 Config/testthat/edition: 3
-Imports: 
+Imports:
     dplyr,
-    purrr
+    jsonlite,
+    purrr,
+    tibble
