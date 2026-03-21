@@ -40,6 +40,7 @@ rDataSet introduces a `dataset` S3 class that extends data frames with designate
 - **ID columns** uniquely identify each row (one-to-one relation)
 - **Value presence** is determined by `is.na()` - a value is present if not `NA`
 - **Set operations** compare cells at the same (row_id, col_id) position
+- **Empty rows are dropped** - rows containing only `NA` values in all value columns are considered non-existent and are automatically removed during dataset construction
 
 ## Set Operations
 
@@ -65,19 +66,20 @@ library(tibble)
 library(dplyr)
 
 # Create datasets with 'i' as the ID column
+# Note: Rows with all-NA values in value columns are automatically dropped
 A <- dataset_build(
-  tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10)),
+  tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10), c = 1:10),
   ids = "i"
 )
 
 B <- dataset_build(
-  tibble(i = 1:10, b = na_if(1:10, 3)),
+  tibble(i = 1:10, b = na_if(1:10, 3), c = 11:20),
   ids = "i"
 )
 
-# Dataset C has fewer rows (1:5) and an extra column 'c'
+# Dataset C has fewer rows (1:5) and an extra column 'd'
 C <- dataset_build(
-  tibble(i = 1:5, b = 10:6, c = 2),
+  tibble(i = 1:5, b = 10:6, d = 2),
   ids = "i"
 )
 
@@ -123,7 +125,7 @@ Combine values from both datasets (full join on rows, all columns):
 A + B
 ```
 
-Union with C - includes all rows (1:10) and all columns (b, c):
+Union with C - includes all rows (1:10) and all columns (b, c, d):
 
 ```{r union-c}
 A + C

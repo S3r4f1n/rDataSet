@@ -23,4 +23,8 @@ Internal recursive function that converts a nested data tree back to a flat
 data frame. It traverses the nested structure and reconstructs rows by
 combining ID values from the hierarchy with leaf-level variable values.
 }
+\details{
+Handles both regular nesting and inverted inner-layer format where variables
+are at the top level and ID values are keys within each variable.
+}
 \keyword{internal}

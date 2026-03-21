@@ -16,7 +16,7 @@ A dataset object (S3 class "dataset") with the \code{dataset_ids} attribute set.
 }
 \description{
 Creates a dataset object from a data frame by designating specific columns as ID columns.
-ID columns must uniquely identify each row (one-to-one relation).
+ID columns must uniquely identify each row (one-to-one relation). NA are considered missing values, rows containing no values are considered non existent and are dropped.
 }
 \examples{
 df <- tibble::tibble(i = 1:5, value = c(10, NA, 30, NA, 50))

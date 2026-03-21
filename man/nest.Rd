@@ -4,7 +4,7 @@
 \alias{nest}
 \title{Recursively Nest Dataset by ID Columns}
 \usage{
-nest(data, ids, collapse_map)
+nest(data, ids, collapse_map, invert_innerlayer = TRUE)
 }
 \arguments{
 \item{data}{Data frame to nest}
