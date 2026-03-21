@@ -1,5 +1,5 @@
-A <- dataset_build(tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10)), "i")
-B <- dataset_build(tibble(i = 1:10, b = na_if(1:10, 3)), "i")
+A <- dataset_build(tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10), what = "hi"), "i")
+B <- dataset_build(tibble(i = 1:10, b = na_if(1:10, 3), what = "hi"), "i")
 C <- dataset_build(tibble(i = 1:5, b = 10:6, c = 2), "i")
 
 
@@ -11,9 +11,9 @@ test_that("Testing basic equality", {
 
 test_that("Testing inequality", {
   expect_equal(any(!vals(A == B), na.rm = TRUE), TRUE) # should always hold
-  expect_equal(sum(vals(A == B)), 10-6) # 6 differing vals
+  expect_equal(sum(vals(A == B)), 20-6) # 6 differing vals
   expect_equal(any(!vals(B == A), na.rm = TRUE), TRUE) # should always hold
-  expect_equal(sum(vals(B == A)), 10-6) # 6 differing vals
+  expect_equal(sum(vals(B == A)), 20-6) # 6 differing vals
 
   expect_error(A == C) # missmatch in rows and cols
   expect_error(A == (C > A)) # missmatch in rows

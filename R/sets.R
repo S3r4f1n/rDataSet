@@ -8,7 +8,7 @@ NULL
 #' Build a Dataset Object
 #'
 #' Creates a dataset object from a data frame by designating specific columns as ID columns.
-#' ID columns must uniquely identify each row (one-to-one relation).
+#' ID columns must uniquely identify each row (one-to-one relation). NA are considered missing values, rows containing no values are considered non existent and are dropped.
 #'
 #' @param df A data frame containing the data.
 #' @param ids A character vector of column names to use as row identifiers.
@@ -23,7 +23,8 @@ dataset_build <- function(df, ids){
   attr(df, "dataset_ids") <- ids
 
   class(df) <- c("dataset", class(df))
-  dataset_integrity(df)
+  non_empty <- vals(df) %>% {!is.na(.)} %>% rowSums() %>% {. > 0} %>% which()
+  dataset_integrity(df %>% slice(non_empty))
 }
 
 #' Validate Dataset Integrity
@@ -71,6 +72,9 @@ dataset_minus <- function(a, b) {
   if(length(intersect(id_a, id_b)) != length(id_a)) stop("ids don't match", "\n id a: ", id_a, "\n id b: ", id_b)
   if(any(intersect(intersect(id_a, names(a)), names(b)) != id_a)) stop("some ids are missing in dataset. Ids: ", id_a)
 
+  if(nrow(a) == 0) return(a)
+  if(nrow(b) == 0) return(a)
+
   ids <- id_a
   common <- setdiff(intersect(names(a), names(b)), ids)
   merged <- left_join(
@@ -87,7 +91,9 @@ dataset_minus <- function(a, b) {
       )
     ) %>%
     rename_with(function(x) sub("_dataset_a_ending$", "", x), matches("_dataset_a_ending$")) %>%
-    select(-matches("_dataset_b_ending$"))
+    select(-matches("_dataset_b_ending$")) %>%
+    select(where(~ any(!is.na(.)))) %>%
+    filter(rowSums(!is.na(across(-all_of(ids)))) > 0)
   
   class(out) <- c("dataset", class(out))
   dataset_integrity(out)
@@ -116,6 +122,9 @@ dataset_intersect <- function(a, b) {
   id_b <- attr(b, "dataset_ids")
   if(length(intersect(id_a, id_b)) != length(id_a)) stop("ids don't match", "\n id a: ", id_a, "\n id b: ", id_b)
   if(any(intersect(intersect(id_a, names(a)), names(b)) != id_a)) stop("some ids are missing in dataset. Ids: ", id_a)
+
+  if(nrow(a) == 0) return(a)
+  if(nrow(b) == 0) return(b)
 
   ids <- id_a
   common <- setdiff(intersect(names(a), names(b)), ids)
@@ -163,6 +172,9 @@ dataset_union <- function(a, b) {
   id_b <- attr(b, "dataset_ids")
   if(length(intersect(id_a, id_b)) != length(id_a)) stop("ids don't match", "\n id a: ", id_a, "\n id b: ", id_b)
   if(any(intersect(intersect(id_a, names(a)), names(b)) != id_a)) stop("some ids are missing in dataset. Ids: ", id_a)
+
+  if(nrow(a) == 0) return(b)
+  if(nrow(b) == 0) return(a)
 
   ids <- id_a
   common <- setdiff(intersect(names(a), names(b)), ids)

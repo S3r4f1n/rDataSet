@@ -501,15 +501,23 @@ test_that("full JSON roundtrip with mixed types", {
 })
 
 test_that("roundtrip with all NA column", {
+  # With stricter set notion, all-NA rows are dropped during dataset_build
+  # A column with all NA values results in an empty dataset
   ds_all_na <- dataset_build(
     tibble::tibble(id = 1:3, all_na = c(NA, NA, NA)),
     ids = "id"
   )
 
+  # All rows should be dropped since they contain no data
+  expect_equal(nrow(ds_all_na), 0)
+
+  # Nesting and unnesting an empty dataset should work
   nested <- dataset_nest(ds_all_na)
   result <- dataset_unnest(nested)
 
-  expect_equal(result$all_na, ds_all_na$all_na)
+  expect_s3_class(result, "dataset")
+  expect_equal(nrow(result), 0)
+  expect_equal(attr(result, "dataset_ids"), "id")
 })
 
 test_that("roundtrip with empty strings", {

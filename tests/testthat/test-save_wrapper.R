@@ -315,23 +315,32 @@ test_that("JSON and TOML produce equivalent results", {
 # =============================================================================
 
 test_that("save/read with all NA column", {
+  # With stricter set notion, all-NA rows are dropped during dataset_build
+  # A column with all NA values results in an empty dataset
   ds_all_na <- dataset_build(
     tibble::tibble(id = 1:3, all_na = c(NA, NA, NA)),
     ids = "id"
   )
 
+  # All rows should be dropped since they contain no data
+  expect_equal(nrow(ds_all_na), 0)
+
   tmp_json <- tempfile(fileext = ".json")
   tmp_toml <- tempfile(fileext = ".toml")
 
+  # Saving and loading an empty dataset should work
   dataset_save(ds_all_na, tmp_json)
   loaded_json <- dataset_read(tmp_json)
-  expect_equal(loaded_json$all_na, ds_all_na$all_na)
+
+  expect_s3_class(loaded_json, "dataset")
+  expect_equal(nrow(loaded_json), 0)
+  expect_equal(attr(loaded_json, "dataset_ids"), "id")
 
   # TOML writing skipped - see note above
   # if (requireNamespace("tomledit", quietly = TRUE)) {
   #   dataset_save(ds_all_na, tmp_toml)
   #   loaded_toml <- dataset_read(tmp_toml)
-  #   expect_equal(loaded_toml$all_na, ds_all_na$all_na)
+  #   expect_equal(nrow(loaded_toml), 0)
   # }
 
   unlink(c(tmp_json, tmp_toml))

@@ -107,7 +107,7 @@ nest <- function(data, ids, collapse_map, invert_innerlayer = TRUE) {
   # Extract variables that are constant at this ID level
   collapse <- collapse_map %>% filter(group_level == curr_id_name) %>% pull(variable)
 
-  collapse <- if (length(collapse) > 0) {
+  collapse <- if (length(collapse) > 0 && nrow(data) > 0) {
     select(data, all_of(collapse)) %>%
       summarise(across(everything(), ~ head(., 1))) %>%
       as.list()
@@ -421,6 +421,28 @@ dataset_unnest <- function(nested_data) {
   # Flatten metadata fields (JSON parsing may create nested lists)
   ids <- if (is.list(metadata$ids)) unlist(metadata$ids) else metadata$ids
   variables <- if (is.list(metadata$variables)) unlist(metadata$variables) else metadata$variables
+
+  # Handle empty dataset case (all-NA rows were dropped)
+  # Check if data is empty or contains only empty structures
+  is_empty_data <- function(data) {
+    if (is.null(data)) return(TRUE)
+    if (length(data) == 0) return(TRUE)
+    if (is.list(data)) {
+      # Check if all elements are empty lists or NULL
+      all(purrr::map_lgl(data, is_empty_data))
+    } else {
+      FALSE
+    }
+  }
+
+  if (is_empty_data(data)) {
+    # Create empty data frame with correct column structure
+    empty_df <- tibble::as_tibble(setNames(replicate(length(ids) + length(variables), list(logical())), c(ids, variables)))
+    for (col in names(empty_df)) {
+      empty_df[[col]] <- logical(0)  # Create empty vector of correct type
+    }
+    return(dataset_build(empty_df, ids = ids))
+  }
 
   # Convert JSON-parsed data (which may have NULL for missing values) to proper R NA
   convert_null_to_na <- function(x) {
