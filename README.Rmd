@@ -20,8 +20,17 @@ knitr::opts_chunk$set(
 
 The goal of rDataSet is to treat data frames as mathematical sets. It provides set-theoretic operations (union, intersection, difference, equality) for data frames where values are identified by row IDs and column names, and presence/absence is determined by `NA` values.
 
-On top of Operations, Datasets support writing and reading to json, toml files. With the goal of having humand readable
-Data represntations which don't relay on table represnataions. (as there is a lack of decent diffing and viewing for such data, at least thats how i perceive it)
+Empty, rows and empty cols are dropped. More over, redundant id cols are dropped, meaning if all values are constant over an id. that id is dropped and the set is shrunk.
+
+When a dataset is in this reduced / restricted format, many operations become possible which wouldn't be reasonable without those restrictions.
+
+Mainly we can convert the Datasets between, wide (default), long, decomposed, flattened states. Where each represents a structure which is ideal for certain operations.
+
+- wide: is the standard, csv / excel view
+- long: is really neat for filtering and diff views.
+- decomposed: really neat to extract "metadata" from datasets. Data which strictly correlates with one id, instead of all.
+- flat: is usefull for serializing and storing data as text in a human readable way.
+
 
 ## Installation
 
@@ -40,7 +49,8 @@ rDataSet introduces a `dataset` S3 class that extends data frames with designate
 - **ID columns** uniquely identify each row (one-to-one relation)
 - **Value presence** is determined by `is.na()` - a value is present if not `NA`
 - **Set operations** compare cells at the same (row_id, col_id) position
-- **Empty rows are dropped** - rows containing only `NA` values in all value columns are considered non-existent and are automatically removed during dataset construction
+- **Empty rows and cols are dropped** - rows and cols containing only `NA` values in all value columns are considered non-existent and are automatically removed during dataset construction
+- **Redundant Ids are dropped** - Ids which have no variance in their data are dropped. 
 
 ## Set Operations
 
