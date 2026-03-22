@@ -160,31 +160,30 @@ dataset_union <- function(a, b) {
 
 #' Set Equality
 #'
-#' Compares two datasets cell-by-cell and returns a dataset of logical values.
+#' Compares two datasets cell-by-cell and returns `TRUE` if they are identical,
+#' `FALSE` otherwise. This is a strict equality check that requires both datasets
+#' to have the same structure and values.
 #'
-#' **Row/Column Handling:**
-#' - **Rows:** Must match exactly - both datasets must have the same rows (by ID)
-#' - **Columns:** Must match exactly - both datasets must have the same value columns
-#' - Throws an error if rows or columns do not align
+#' **Comparison Criteria:**
+#' - **ID Columns:** Must match exactly (same names and values)
+#' - **Value Columns:** Must have the same column names
+#' - **Rows:** Must have the same rows (by ID)
+#' - **Values:** All corresponding cells must have identical values
 #'
-#' **Value Operation:**
-#' For each cell at (row_id, col_id):
-#' - Returns `TRUE` if both cells have equal non-`NA` values
-#' - Returns `FALSE` if one cell is `NA` and the other is not, or if values differ
-#' - Returns `NA` if both cells are `NA`
+#' **Value Comparison:**
+#' - Both cells must have equal non-`NA` values for a match
+#' - A mismatch occurs if one cell is `NA` and the other is not
+#' - If both cells are `NA`, they are considered equal
 #'
 #' @param a A dataset object (left operand).
 #' @param b A dataset object (right operand).
-#' @return A dataset of logical values indicating cell-wise equality.
-#' @details Error if ID columns do not match, or if datasets have different dimensions.
+#' @return `TRUE` if datasets are identical, `FALSE` otherwise.
+#' @details This function implements strict mathematical set equality:
+#'   `a == b` iff `a ⊆ b` and `b ⊆ a`. Unlike element-wise comparison
+#'   operators, this returns a single boolean value. Throws an error if
+#'   ID columns do not match; returns `FALSE` with warnings for other
+#'   mismatches (columns, rows, or values).
 #' @keywords internal
-#'
-#' complete refactor this goes no where we go closer to math definition set equality is
-#' a subset b and b subset of a
-#' this now is even stricter. All values also need to match. it is not only set comparison in the
-#' sense of is every cell containing a value as well it checks for equality of those values
-#' as well. Returns True if identcal false otherwise. Error if the datasets don't use the same
-#' id cols
 dataset_equality <- function(a, b) {
   id_a <- ids(a)
   id_b <- ids(b)

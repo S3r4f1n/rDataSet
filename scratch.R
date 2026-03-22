@@ -28,6 +28,10 @@ b <- dataset_build(
   ids = c("id", "code")
 )
 
+b
+ds
+dataset_diff(ds, b)
+
 tmp <- tempfile(fileext = ".toml")
 
 dataset_save(ds, tmp)
@@ -53,3 +57,4 @@ a <- ds
 
 a - a
 
+dataset_diff(A, B)
