@@ -2,11 +2,20 @@ ds <- dataset_build(
   tibble(
     id = 1:4%%2,
     lab = "Hi",
-    code = 1:4, 
+    code = c("HI", "HI", "HO", "HO"), 
     labs = 2:5
   ),
   ids = c("id", "code")
 )
+
+# some bug here
+ds %>%
+  dataset_to_long() %>%
+  dataset_to_wide("id") %>%
+  # attr("dataset_x_axis")
+
+  dataset_to_long()
+  dataset_to_wide("variable")
 
 
 df <-   tibble(

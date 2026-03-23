@@ -1,5 +1,11 @@
 library(dplyr)
 
+#' @todo make this more general and formal, rmove the hirarchcal part?
+#' and work with a dummy id for level 0? Currently order of ids matter, this i convenient in some cases
+#' but flawed in other. Make it independent of the order of ids.
+#' independent vars, single dependence, multi dependence, what if multiple ids can completly cover the variance
+#' use the id with the lowest unique values (n_distinct)
+#'
 #' Decompose Dataset into Hierarchical Components
 #'
 #' Decomposes a wide-format dataset into a list of smaller datasets based on
@@ -138,3 +144,141 @@ dataset_compose <- function(list_df) {
   attr(out, "dataset_state") <- "wide"
   out
 }
+
+dataset_clean_decompose <- function(dataset) {
+  if(attr(dataset, "dataset_state") != "wide") stop("dataset in wide form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
+  ids <- names(ids(dataset))
+  vals <- names(vals(dataset))
+  id_plan <- map(seq_along(ids), ~ combn(ids, .x, simplify = FALSE)) %>% flatten()
+  id_paths <- map(id_plan, ~ purrr::reduce(dataset %>% select(all_of(.x)), paste0))
+
+  # we rank id paths by
+  # 1. fewest distinct values
+  # 2. number of ids
+  op <- tibble(id_plan, id_paths) %>% # this is the golden plan
+    mutate(
+      n_distinct = map(id_paths, n_distinct) %>% unlist(),
+      n_ids = map(id_plan, length) %>% unlist()
+    ) %>%
+    arrange(n_distinct, n_ids)
+
+  # heavy lifting
+  dependence_table <-  dataset_clean_functional_dependence(dataset, op)
+  indices <- max.col(dependence_table, ties.method = "first")
+  # refers to the highest ranked id path which fully describes the data
+
+  # we build the collection of ids and vars, each row will be a dataframe in the output
+  rd_plan <- tibble(row = seq_along(indices), indices = max.col(dependence_table, ties.method = "first")) %>%
+    mutate(
+      variable = rownames(dependence_table)[row],
+      ids = op$id_plan[indices]
+      ) %>%
+    summarise(
+      ids = head(ids, 1),
+      vars = list(variable),
+      .by = indices
+    )
+
+  # we save the id relation separatly to be loss less on joins
+  used_ids <- rd_plan %>% pull(ids) %>% unlist() %>% unique()
+  id_relation <- ids(dataset)[used_ids]
+
+  # simple helper function
+  reduce_dataset <- function(dataset, ids, vals) {
+    out <- dataset %>%
+      slice_head(n =  1, by = all_of(ids)) %>%
+      select(all_of(c(ids, vals)))
+    attr(out, "dataset_ids") <- ids
+    attr(out, "dataset_state") <- "decomposed"
+    class(out) <- c("dataset", class(out))
+    out
+  }
+
+  # reducing the dataset into its components
+  decomposed_vals <- purrr::map2(rd_plan$ids, rd_plan$vars, \(ids, vals) {
+    reduce_dataset(dataset, ids, vals)
+  })
+
+  decomposition <- c(list(id_relation), decomposed_vals)
+  attr(decomposition, "dataset_state") <- "decomposed"
+
+  decomposition
+}
+
+
+  # build fd table
+  # x axis id and id combinations
+  # y axis values
+  # cells if the id coll can copmletely discibe the value it is set to true
+  # this is the golden middle where the heavy lifting is done
+  # @internal
+  # @todo rework the is_const_within function to work on unsorted tables
+dataset_clean_functional_dependence <- function(dataset, op) {
+  vals <- names(vals(dataset))
+  is_const_within <- function(var, id_vec) {
+    tapply(var, id_vec, \(x) length(unique(x)) <= 1) |> all()
+  }
+  # we can no longer rely on beeing sorted is_const_within must be refactored
+  out <- lapply(op$id_paths, function(id_path) {
+    sapply(dataset[vals], function(var) is_const_within(var, id_path))
+  })
+
+  names(out) <- purrr::map(op$id_plan, ~ purrr::reduce(.x, paste0)) %>% unlist()
+  out %>% as.data.frame() %>% as.matrix() 
+}
+
+
+# filter trivial independence
+
+# this would lead to two completly independent tables.
+# we lose the infromation connecting a and b
+# we need to keep the hirarchy for in the decompositions...
+# we need to be smarter about the selection of id_paths, smallest isn't sufficient
+# the subset of ids must be connected as well. meaning the id paths are hyper edges over
+# ids we choose a subset of hyper adges which give a connected hypr tree
+# additionally wa can choose maybe a minimum spanning hyper tree. where the weight
+# is computed as a combination of n_distinct values per edge. one dge covering all would
+# likely always be minimal in that sense. i guess we want to the add up over the variables
+# e.g. if we can factor some out we are happy but we'll likely need the full edge always
+# this should be fine as we keep all relations id relations in tact and still we reduce some
+# varaibles.
+#
+# so what we want is a set of edges, which connects all ids, but also is minimal in the sense
+# of n_distinct * edge count. for each variable, we need one edge (place to store our information)
+# so if we would choose the completely covering edge n times we would have a solution
+# (our initial state) but also the maximum amount of n_distinct * edges.
+# we can reduce this connections by choosing more suitable edges.
+#
+# so we need to keep to constraints going.
+#
+# 1. Graph is connected
+# 2. edges are relaxed where possible.
+#
+# in this example the best would be to use
+# id a for var one
+# and id a,b for var two
+#
+# if we only would have var 1 we still would need to store a,b
+# as other wise we loose the relation between the ids. if we say we
+# only have ids which are necesarry in the sense they can't be fully covered by an id
+# with less distinct values. more desirable.
+#
+# now this would lead in a case where any id can fully cover the sets the best option to
+# the id with the fewest distinct values.
+# 
+# we want to select some values from that dependence table. mostly the hmm
+# we want to select the ids such that we have small tables, e.g. for each variable we chosse the id with the lowest
+# distinct values
+# we need to guarantee coveredness and want to optimize n_distinct.
+# ok after thinking about this for a long time  i guess the best approach is to
+# select the first ids which cover the whole graph
+# and additionaly store a id relation.
+# this guarantees a loss less join and can reduce information
+# down into smaller tables.
+# this is of limited use to optimize performance at the current my current  understanding
+# but maybe still helpful to create set minus.
+#
+# so we can actually use the easy optimization above and additionaly store the complete id relation.
+# now there could be heavily redundant information in the ids but we won't care about that
+# or we could actualy filter the complete id col to reduce to ids which are actually
+# needed to cover the variables

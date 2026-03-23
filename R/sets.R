@@ -1,4 +1,14 @@
 library(dplyr)
+#' @todo
+#' first do perfect support for wide long and compes decomposed form (these three formats must be loss free)
+#' - wide / long (note that ids, and the x axis build the ids over a dataset in the wide form
+#'   in the long form the ids are all cols but the last which is the value col)
+#' - compose / decomposed, note that the composed form is exactly the wide format. We might call wide / composed format the default
+#'   in the decomposed form we have a collection of dense? tables. constant values are factored out as much as possible
+#' - flat, is this even needed? it is basically the same as decomposed. but it might be considered, the decomposed long form :)
+#' second implement the arithemtics using the transformations
+#' third implement storing and loading of datasets.
+#' 
 #' @keywords internal
 "_PACKAGE"
 
@@ -24,6 +34,7 @@ dataset_build <- function(df, ids){
   if(!is.data.frame(df)) stop("the df must be a dataframe")
 
   attr(df, "dataset_ids") <- ids
+  attr(df, "dataset_x_axis") <- "variable" # normally variables are placed on the x axis, but could also be another id
   attr(df, "dataset_state") <- "wide"
   class(df) <- c("dataset", class(df))
 
@@ -31,6 +42,15 @@ dataset_build <- function(df, ids){
   dataset_collapse(dataset)
 }
 
+#' @todo this is not jet stable, what happens with ids which are A Redunadant B?
+#' what should happen, if two id cols are identical in its variance. e.g. two enumarionts.
+#' should one be dropped, should one be demoted. do we want to support a functional dependence
+#' but then we also have potentially mapping in the saize of the data to store.
+#' i think the cleanest way is to say either demote it manually to values or it is dropped.
+#' no duplicated or redundant ids are accepted. Be more rigourous about this constraint.
+#'
+#' Main advantage is that this allows for loss less decomposition. which then again can be used to build minus
+#' 
 #' Collapse Dataset to Remove Empty Rows and Columns
 #'
 #' Removes all rows and columns that contain only `NA` values, ensuring
