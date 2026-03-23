@@ -73,23 +73,23 @@ test_that("mixed roundtrip", {
   expect_equal(A == (A %>% dataset_decompose() %>% dataset_compose() %>% dataset_to_long() %>% dataset_to_wide()), TRUE)
 })
 
-# test_that("edge case: single value column", {
-#   expect_equal(single_val == (single_val %>% dataset_to_long() %>% dataset_to_wide()), TRUE)
-# })
+test_that("edge case: single value column", {
+  expect_equal(single_val == (single_val %>% dataset_to_long() %>% dataset_to_wide()), TRUE)
+})
 
-# test_that("edge case: single row", {
-#   expect_equal(single_row == (single_row %>% dataset_to_long() %>% dataset_to_wide()), TRUE)
-# })
+test_that("edge case: single row", {
+  expect_equal(single_row == (single_row %>% dataset_to_long() %>% dataset_to_wide()), TRUE)
+})
 
-# test_that("edge case: all NA becomes empty", {
-#   # All NA values collapse to empty set during build
-#   expect_equal(0, nrow(all_na))
-#   expect_equal(0, ncol(all_na))
+test_that("edge case: all NA becomes empty", {
+  # All NA values collapse to empty set during build
+  expect_equal(0, nrow(all_na))
+  expect_equal(0, ncol(all_na))
 
-#   # Empty set should roundtrip (stays empty)
-#   result <- all_na %>% dataset_to_long() %>% dataset_to_wide()
-#   expect_equal(0, nrow(result))
-# })
+  # Empty set should roundtrip (stays empty)
+  result <- all_na %>% dataset_to_long() %>% dataset_to_wide()
+  expect_equal(0, nrow(result))
+})
 
 # test_that("type preservation - numeric values", {
 #   # C has numeric columns

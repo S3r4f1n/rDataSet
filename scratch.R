@@ -8,6 +8,16 @@ ds <- dataset_build(
   ids = c("id", "code")
 )
 
+ds <- dataset_build(
+  tibble(
+    varname = c("age", "age", "gender", "gender"),
+    lab = c("Alter", "Alter", "Geschlecht", "Geschlecht"),
+    code = c(1, 2, 1, 2),
+    labs = list(5, 6, "weiblich", "männlich")
+  ),
+  ids = c("varname", "code")
+)
+
 ds == ds %>%
   dataset_decompose() %>%
   dataset_compose()
@@ -33,7 +43,7 @@ df <-   tibble(
 
 ids <- c("id", "code")
 
-b <- dataset_build(
+ds <- dataset_build(
   tibble(
     id = 1:4%%2,
     lab = "Hi",
@@ -73,3 +83,33 @@ a <- ds
 a - a
 
 dataset_diff(A, B)
+
+# these are fun
+ds %>% dataset_to_long() %>%
+  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+
+# these are fun but not that convincing
+ds %>% dataset_to_long() %>%
+  dataset_to_wide("code") %>%
+  dataset_decompose() %>%
+  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+
+
+# this gets second place and is loss free. but i guess we can optimize it
+ds %>% dataset_decompose() %>%
+  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+
+# this gets closest to what i want to have but has loss...
+ds %>% dataset_flatten("code") %>%
+  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+
+ds %>% dataset_flatten("varname") %>%
+  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+
+ds %>% dataset_hirarchical_decompose()
+ds %>% dataset_decompose()
+
+a <- A
+b <- B
+
+

@@ -1,33 +1,5 @@
 library(dplyr)
 
-#' Filter Dataset by Logical Conditions on Values
-#'
-#' Filters a dataset based on logical conditions applied to its value columns.
-#' The dataset is temporarily converted to long format for filtering, then
-#' converted back to wide format.
-#'
-#' **Filtering Process:**
-#' - Converts the dataset from wide to long format (one row per cell)
-#' - Applies the provided filter conditions using dplyr semantics
-#' - Converts the filtered result back to wide format
-#'
-#' @param data A dataset to filter.
-#' @param ... Logical conditions for filtering (passed to `dplyr::filter()`).
-#'   Conditions can reference the `value` and `variable` columns available in
-#'   long format.
-#' @return A filtered dataset in wide format containing only rows that satisfy
-#'   the filter conditions.
-#' @details The filtering operates on individual cells (long format), not entire
-#'   rows. Use conditions that account for this cell-level operation.
-#' @keywords internal
-dataset_filter <- function(data, ...) {
-  dots <- enquos(...)
-
-  long <- dataset_to_long(data)
-  filtered <- filter(long, !!!dots)
-  dataset_to_wide(filtered)
-}
-
 #' Convert Dataset from Wide to Long Format
 #'
 #' Transforms a dataset from wide format (one row per entity, multiple value columns)
@@ -51,14 +23,22 @@ dataset_to_long <- function(dataset) {
   ids <- ids(dataset) %>% names()
   x_axis <- attr(dataset, "dataset_x_axis")
 
+  if(length(ids) == 0) {
+    out <- dataset_empty()
+    attr(out, "dataset_state") <- "wide"
+    return(out)
+  }
+
   if(attr(dataset, "dataset_state") != "wide") stop("dataset in wide form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
 
   long <- dataset %>%
     tidyr::pivot_longer(-all_of(ids), values_transform = as.character) %>%
-    rename_with(~ x_axis, name) %>%
-    dataset_build(ids = c(ids, x_axis))
+    rename_with(~ x_axis, name)
 
+  attr(long, "dataset_ids") <- c(ids, x_axis)
   attr(long, "dataset_state") <- "long"
+  attr(long, "dataset_x_axis") <- x_axis
+  class(long) <- c("dataset", class(long))
   dataset_integrity(long)
 }
 
@@ -86,18 +66,21 @@ dataset_to_long <- function(dataset) {
 dataset_to_wide <- function(dataset, col = NULL) {
   ids <- ids(dataset) %>% names()
   vals <- vals(dataset) %>% names()
-
   x_axis <- if(is.null(col)) attr(dataset, "dataset_x_axis") else col
+
+  # empty case
+  if(length(ids) == 0) return(dataset_empty())
 
   if(attr(dataset, "dataset_state") != "long") stop("dataset in long form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
   if(any(vals != "value")) stop("a data set in long form is expected to only have one, vals column named value")
   if(!x_axis %in% ids) stop("a data set in long form is expected to have a id column which is called by the x_axis here: ", x_axis)
 
   wide <- dataset %>%
-    tidyr::pivot_wider(names_from = all_of(x_axis), values_from = value) %>%
-    dataset_build(ids = setdiff(c(ids), x_axis))
+    tidyr::pivot_wider(names_from = all_of(x_axis), values_from = value)
 
+  attr(wide, "dataset_ids") <- setdiff(c(ids), x_axis)
   attr(wide, "dataset_x_axis") <- x_axis
   attr(wide, "dataset_state") <- "wide"
-  dataset_collapse(wide)
+  class(wide) <- c("dataset", class(wide))
+  dataset_integrity(wide)
 }

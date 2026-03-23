@@ -3,6 +3,15 @@ library(dplyr)
 dataset_decompose <- function(dataset) {
   if(attr(dataset, "dataset_state") != "wide") stop("dataset in wide form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
   ids <- names(ids(dataset))
+
+  # empty case
+  if(length(ids) == 0) {
+    decomposed <- list(dataset_empty())
+    attr(decomposed, "dataset_ids") <- NULL
+    attr(decomposed, "dataset_state") <- "decomposed"
+    return(decomposed)
+  }
+
   vals <- names(vals(dataset))
   id_plan <- map(seq_along(ids), ~ combn(ids, .x, simplify = FALSE)) %>% flatten()
   id_paths <- map(id_plan, ~ purrr::reduce(dataset %>% select(all_of(.x)), paste0))
@@ -56,6 +65,8 @@ dataset_decompose <- function(dataset) {
 
   decomposition <- c(list(id_relation), decomposed_vals)
   attr(decomposition, "dataset_state") <- "decomposed"
+  attr(decomposition, "dataset_ids") <- used_ids
+  class(decomposition) <- c("dataset", class(decomposition))
 
   decomposition
 }
@@ -83,6 +94,11 @@ dataset_functional_dependence <- function(dataset, op) {
 dataset_compose <- function(list_df) {
   if(attr(list_df, "dataset_state") != "decomposed") stop("dataset in composed form is expected but attr(dataset, 'dataset_state') is: ", attr(list_df, "dataset_state"))
 
+  # empty case
+  if(length(attr(list_df, "dataset_ids")) == 0) {
+    return(dataset_empty())
+  }
+  
   # Join all data frames using natural join (join on all common columns)
   out <- purrr::reduce(list_df, ~ {
     common_cols <- intersect(names(.x), names(.y))
@@ -92,5 +108,6 @@ dataset_compose <- function(list_df) {
   ids <- purrr::map(list_df, ~ attr(., "dataset_ids")) %>% unlist() %>% unique()
   attr(out, "dataset_ids") <- ids
   attr(out, "dataset_state") <- "wide"
+  class(out) <- c("dataset", class(out))
   out
 }

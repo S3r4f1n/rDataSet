@@ -1,8 +1,19 @@
 library(dplyr)
 #' @todo
-#' first do perfect support for wide long and compes decomposed form (these three formats must be loss free)
-#' - fix edge cases
+#' theory, if we convert a dataset into long form, we can easly see that the x_axis is basicaly
+#' just an id column as well. Now this opens the questions wether a decomposition
+#' as defined here always results in the same (independent of x_axis) we know this to be false
+#' therefore we can say a decomposition happens over a specified id. Now is the decomposisiotn and composition
+#' loss free over all possible ids?
+#' we know it is not loss free over all possible sets but we consider these sets not as datasets. so more over
+#' can the decomposition adn composition be loss free over one id and lossy over another id?
+#' 
+#' done - first do perfect support for wide long and compes decomposed form (these three formats must be loss free)
+#'  - (skip edgcases on type conversion if numeric id is converted to long x axis)
 #' second implement the arithemtics using the transformations
+#' - make intersection and diff more general and support unequal id cols.
+#'   - i had an idea about the reduction (maybe with long format)
+#'   - but the idea of subtraction was based on decomposition
 #' third implement storing and loading of datasets.
 #' - flat, is this even needed? it is basically the same as decomposed. but it might be considered, the decomposed long form :)
 #'
@@ -152,3 +163,6 @@ ids <- function(dataset){
   dataset %>% select(all_of(ids))
 }
 
+dataset_empty <- function(){
+  dataset_build(tibble(i = 1, b = NA), "i")
+}
