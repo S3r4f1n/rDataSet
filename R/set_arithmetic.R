@@ -35,7 +35,8 @@ dataset_minus <- function(a, b) {
   merged <- left_join(
     a %>% rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
     b %>% select(all_of(c(ids, common))) %>% rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common)),
-    by = ids
+    by = ids,
+    keep = FALSE
   )
   out <- merged %>%
     mutate(
@@ -87,7 +88,8 @@ dataset_intersect <- function(a, b) {
   merged <- inner_join(
     a %>% select(all_of(c(ids, common))) %>% rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
     b %>% select(all_of(c(ids, common))) %>% rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common)),
-    by = ids
+    by = ids,
+    keep = FALSE
   )
 
   out <- merged %>%
@@ -140,7 +142,9 @@ dataset_union <- function(a, b) {
   common <- setdiff(intersect(names(a), names(b)), ids)
   merged <- full_join(
     a %>% rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
-    b %>% rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common))
+    b %>% rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common)),
+    by = intersect(names(id_a), names(id_b)),
+    keep = FALSE
   )
 
   out <- merged %>%
@@ -214,12 +218,12 @@ dataset_equality <- function(a, b) {
   if(nrow(a) == 0 && nrow(b) == 0) return(TRUE)
   if(xor(nrow(a) == 0, nrow(b) == 0)) return(FALSE)
 
-  id_match <- inner_join(id_a, id_b)
+  id_match <- inner_join(id_a, id_b, by = names(id_a), keep = FALSE)
 
   if(any(nrow(id_a) != nrow(id_match), nrow(id_b) != nrow(id_match))) {
     warning("rows missmatch:",
-      "\nextra rows in a: ", paste(anti_join(id_a, id_match), collapse = ", "),
-      "\nextra rows in b: ", paste(anti_join(id_b, id_match), collapse = ", ")
+      "\nextra rows in a: ", paste(anti_join(id_a, id_match, by = names(id_a)), collapse = ", "),
+      "\nextra rows in b: ", paste(anti_join(id_b, id_match, by = names(id_b)), collapse = ", ")
     )
     return(FALSE)
   }
@@ -227,12 +231,12 @@ dataset_equality <- function(a, b) {
   long_a <- dataset_to_long(a)
   long_b <- dataset_to_long(b)
 
-  long_match <- inner_join(long_a, long_b)
+  long_match <- inner_join(long_a, long_b, by = names(long_a), keep = FALSE)
 
   if(any(nrow(long_a) != nrow(long_match), nrow(long_b) != nrow(long_match))) {
     warning("rows missmatch:",
-      "\nextra rows in a: ", paste(anti_join(long_a, long_match), collapse = ", "),
-      "\nextra rows in b: ", paste(anti_join(long_b, long_match), collapse = ", ")
+      "\nextra rows in a: ", paste(anti_join(long_a, long_match, by = names(long_a)), collapse = ", "),
+      "\nextra rows in b: ", paste(anti_join(long_b, long_match, by = names(long_b)), collapse = ", ")
     )
     return(FALSE)
   }

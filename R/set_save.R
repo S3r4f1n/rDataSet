@@ -1,6 +1,5 @@
 library(dplyr)
 
-
 fancy_transpose <- function(df, ids){
   id_path <- df %>%
     select(all_of(ids)) %>%

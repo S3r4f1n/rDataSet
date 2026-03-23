@@ -2,7 +2,7 @@
 % Please edit documentation in R/sets.R
 \name{ids}
 \alias{ids}
-\title{Extract ID Columns}
+\title{Extract ID Columns from Dataset}
 \usage{
 ids(dataset)
 }
@@ -13,9 +13,11 @@ ids(dataset)
 A data frame containing only the ID columns.
 }
 \description{
-Returns the ID columns from a dataset.
+Returns all ID columns from a dataset.
 }
-\examples{
-ds <- dataset_build(tibble::tibble(i = 1:3, value = c(10, NA, 30)), ids = "i")
-ids(ds)
+\details{
+ID columns define the row identity and are used for joining
+and comparing datasets. They are specified during dataset construction
+via the \code{dataset_build()} function.
 }
+\keyword{internal}

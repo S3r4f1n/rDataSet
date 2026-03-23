@@ -4,19 +4,28 @@
 \alias{dataset_integrity}
 \title{Validate Dataset Integrity}
 \usage{
-dataset_integrity(dataset)
+dataset_integrity(collapsed_set)
 }
 \arguments{
-\item{dataset}{A dataset object to validate.}
+\item{collapsed_set}{A dataset to validate.}
 }
 \value{
-The input dataset (invisibly) if valid.
+The input dataset (invisibly) if all checks pass.
 }
 \description{
-Internal function to verify that a dataset object is valid.
-Checks that the ID columns uniquely identify each row.
+Checks that a dataset satisfies the fundamental integrity constraints
+required for set operations.
 }
 \details{
-If the dataset is invalid.
+\strong{Integrity Checks:}
+\itemize{
+\item Verifies the object has "dataset" class
+\item Confirms \code{dataset_state} attribute is valid ("wide", "long", or "decomposed")
+\item Ensures ID columns uniquely identify each row (no duplicate ID combinations)
+}
+
+This function is called automatically after dataset operations
+to ensure the result is a valid dataset. The uniqueness check compares
+the total row count against the count of unique ID combinations.
 }
 \keyword{internal}

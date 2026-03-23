@@ -8,13 +8,19 @@ ds <- dataset_build(
   ids = c("id", "code")
 )
 
+ds == ds %>%
+  dataset_decompose() %>%
+  dataset_compose()
+  .[[3]] %>%
+  dataset_to_long()
+
 # some bug here
 ds %>%
   dataset_to_long() %>%
   dataset_to_wide("id") %>%
   # attr("dataset_x_axis")
 
-  dataset_to_long()
+  dataset_to_long() %>%
   dataset_to_wide("variable")
 
 

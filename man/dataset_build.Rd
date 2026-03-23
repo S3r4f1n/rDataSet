@@ -2,23 +2,32 @@
 % Please edit documentation in R/sets.R
 \name{dataset_build}
 \alias{dataset_build}
-\title{Build a Dataset Object}
+\title{Build a Dataset from a Data Frame}
 \usage{
 dataset_build(df, ids)
 }
 \arguments{
-\item{df}{A data frame containing the data.}
+\item{df}{A data frame to convert into a dataset.}
 
-\item{ids}{A character vector of column names to use as row identifiers.}
+\item{ids}{A character vector specifying the names of ID columns.}
 }
 \value{
-A dataset object (S3 class "dataset") with the \code{dataset_ids} attribute set.
+A dataset object with the specified ID columns.
 }
 \description{
-Creates a dataset object from a data frame by designating specific columns as ID columns.
-ID columns must uniquely identify each row (one-to-one relation). NA are considered missing values, rows containing no values are considered non existent and are dropped.
+Constructs a dataset object from a regular data frame by setting the
+ID columns and initializing the dataset attributes.
 }
-\examples{
-df <- tibble::tibble(i = 1:5, value = c(10, NA, 30, NA, 50))
-ds <- dataset_build(df, ids = "i")
+\details{
+\strong{Initialization:}
+\itemize{
+\item Sets the \code{dataset_ids} attribute to specify which columns are ID columns
+\item Sets the \code{dataset_state} attribute to "wide"
+\item Adds "dataset" to the class vector
+\item Automatically collapses the dataset to remove empty rows/columns
 }
+
+The ID columns must uniquely identify each row. The function
+validates this constraint via \code{dataset_integrity()} during collapse.
+}
+\keyword{internal}

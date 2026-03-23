@@ -2,7 +2,7 @@
 % Please edit documentation in R/sets.R
 \name{vals}
 \alias{vals}
-\title{Extract Value Columns}
+\title{Extract Value Columns from Dataset}
 \usage{
 vals(dataset)
 }
@@ -10,12 +10,14 @@ vals(dataset)
 \item{dataset}{A dataset object.}
 }
 \value{
-A data frame containing only the value columns (non-ID columns).
+A data frame containing only the value columns.
 }
 \description{
-Returns all non-ID columns from a dataset.
+Returns all non-ID columns (value columns) from a dataset.
 }
-\examples{
-ds <- dataset_build(tibble::tibble(i = 1:3, value = c(10, NA, 30)), ids = "i")
-vals(ds)
+\details{
+Value columns are those not specified as ID columns during
+dataset construction. These columns contain the actual data values
+that participate in set operations.
 }
+\keyword{internal}
