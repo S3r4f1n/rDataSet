@@ -100,11 +100,23 @@ ds %>% dataset_decompose() %>%
   jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
 # this gets closest to what i want to have but has loss...
-ds %>% dataset_flatten("code") %>%
+ds %>% dataset_flatten() %>%
   jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
-ds %>% dataset_flatten("varname") %>%
+# i think it is nice that ordering properties are stored in the attributes
+# but we need to treat them more sacredly if we really want to do this
+# i also think flattening should only ba applied to the last, variable in the
+# hirarcy as otherwise it can be impossible to decipher to which id a name belongs
+# currently it is clearly identifiable with the infix and postfix.
+ds %>%
+  {x <- .; attr(x, "dataset_ids") <- c("code", "varname"); x} %>%
+  dataset_flatten() %>%
+  dataset_flatten_undo()
   jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+
+
+ds %>% dataset_flatten("varname") %>%
+  dataset_flatten_undo()
 
 ds %>% dataset_hirarchical_decompose()
 ds %>% dataset_decompose()

@@ -1,5 +1,6 @@
 library(dplyr)
 
+# fancy transpose to get nice json
 fancy_transpose <- function(df, ids, infix = ".", postfix = ""){
   id_path <- df %>%
     select(all_of(ids)) %>%
@@ -14,6 +15,7 @@ fancy_transpose <- function(df, ids, infix = ".", postfix = ""){
     setNames(id_path)
 }
 
+# long ai function and maybe faulty
 fancy_transpose_undo <- function(named_list, ids, infix = ".", postfix = ""){
   if(length(named_list) == 0) {
     return(data.frame())
@@ -68,9 +70,12 @@ fancy_transpose_undo <- function(named_list, ids, infix = ".", postfix = ""){
 # code = val
 # code = val
 # 
-dataset_flatten <- function(dataset, flatten_by){
+# looks so nice and loss free (well, you cant have varnames / values containing "." or ending with ":" and "dataset_ids" is reserved word)
+dataset_flatten <- function(dataset){
   df_list <- dataset_hirarchical_decompose(dataset)
   decomposed_vals <- df_list
+  ids <- names(ids(dataset))
+  flatten_by <- ids[length(ids)]
 
   flat <- purrr::map(decomposed_vals, function(child){
     id_child <- names(ids(child))
@@ -96,15 +101,7 @@ dataset_flatten <- function(dataset, flatten_by){
 
 }
 
-#' Reverse dataset_flatten: Reconstruct Dataset from Flat List
-#'
-#' Reconstructs a dataset from a flat list created by `dataset_flatten()`.
-#' First reconstructs the hierarchical decomposition, then composes it back
-#' into a dataset.
-#'
-#' @param flat A flat list created by `dataset_flatten()`.
-#' @return A dataset object.
-#' @keywords internal
+# ai function (long and maybe faulty)
 dataset_flatten_undo <- function(flat) {
   # Extract the dataset_ids (first element)
   ids <- flat$dataset_ids
@@ -204,9 +201,8 @@ dataset_flatten_undo <- function(flat) {
   dataset_compose(decomposed)
 }
 
-dataset_save <- function(dataset, path, flatten_by = NULL) {
-  flatten_by <- if(is.null(flatten_by)) attr(dataset, "dataset_x_axis") else flatten_by
-  flat <- dataset_flatten(dataset, flatten_by)
+dataset_save <- function(dataset, path) {
+  flat <- dataset_flatten(dataset)
   jsonlite::write_json(flat, path)
 }
 
@@ -215,29 +211,3 @@ dataset_load <- function(path) {
   dataset_compose(flat)
 }
 
-
-# example usage for flattening:
-if(FALSE) {
-ds <- dataset_build(
-  tibble(
-    varname = c("age", "age", "gender", "gender"),
-    lab = c("Alter", "Alter", "Geschlecht", "Geschlecht"),
-    code = c(1, 2, 1, 2),
-    labs = list(5, 6, "weiblich", "männlich")
-  ),
-  ids = c("varname", "code")
-)
-
-# Flatten by "code" and convert to JSON
-ds %>% dataset_flatten("code") %>%
-  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
-
-# Flatten by "varname" and convert to JSON
-ds %>% dataset_flatten("varname") %>%
-  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
-
-# Round-trip example: flatten, save, load, and reconstruct
-flat <- ds %>% dataset_flatten("code")
-ds_reconstructed <- dataset_flatten_undo(flat)
-ds == ds_reconstructed  # Should return TRUE
-}
