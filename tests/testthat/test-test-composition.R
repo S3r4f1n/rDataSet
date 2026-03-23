@@ -4,6 +4,11 @@ B <- dataset_build(tibble(i = 1:10, b = na_if(1:10, 3), what = "hi"), "i")
 C <- dataset_build(tibble(i = 1:5, b = 10:6, c = 2), "i")
 D <- dataset_build(tibble(i = 1:5, b = 10:6, c = 2), "b")
 
+# Edge case fixtures
+single_val <- dataset_build(tibble(i = 1:3, b = c(1, NA, 3)), "i")  # Only one value column
+single_row <- dataset_build(tibble(i = 1, b = 42, what = "hi"), "i")  # Single row
+all_na <- dataset_build(tibble(i = 1:3, b = c(NA, NA, NA)), "i")  # All NA -> empty
+
 test_that("basic roundtrip", {
   expect_equal(A == (A %>% dataset_decompose() %>% dataset_compose()), TRUE)
   expect_equal(B == (B %>% dataset_decompose() %>% dataset_compose()), TRUE)
@@ -80,3 +85,21 @@ test_that("type preservation - character values", {
   expect_equal(class(A$what), class(result$what))
   expect_true(is.character(result$what))
 })
+
+# test_that("edge case: single value column", {
+#   expect_equal(single_val == (single_val %>% dataset_decompose() %>% dataset_compose()), TRUE)
+# })
+
+# test_that("edge case: single row", {
+#   expect_equal(single_row == (single_row %>% dataset_decompose() %>% dataset_compose()), TRUE)
+# })
+
+# test_that("edge case: all NA becomes empty", {
+#   # All NA values collapse to empty set during build
+#   expect_equal(0, nrow(all_na))
+#   expect_equal(0, ncol(all_na))
+
+#   # Empty set should roundtrip (stays empty)
+#   result <- all_na %>% dataset_decompose() %>% dataset_compose()
+#   expect_equal(0, nrow(result))
+# })
