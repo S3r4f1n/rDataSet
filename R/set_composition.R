@@ -1,113 +1,116 @@
-library(dplyr)
+require(dplyr)
 
-dataset_decompose <- function(dataset) {
-  if(attr(dataset, "dataset_state") != "wide") stop("dataset in wide form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
-  ids <- names(ids(dataset))
-
-  # empty case
-  if(length(ids) == 0) {
-    decomposed <- list(dataset_empty())
-    attr(decomposed, "dataset_ids") <- NULL
-    attr(decomposed, "dataset_state") <- "decomposed"
-    return(decomposed)
-  }
-
-  vals <- names(vals(dataset))
-  id_plan <- map(seq_along(ids), ~ combn(ids, .x, simplify = FALSE)) %>% flatten()
-  id_paths <- map(id_plan, ~ purrr::reduce(dataset %>% select(all_of(.x)), paste0))
-
-  # we rank id paths by
-  # 1. fewest distinct values
-  # 2. number of ids
-  op <- tibble(id_plan, id_paths) %>% # this is the golden plan
-    mutate(
-      n_distinct = map(id_paths, n_distinct) %>% unlist(),
-      n_ids = map(id_plan, length) %>% unlist()
-    ) %>%
-    arrange(n_distinct, n_ids)
-
-  # heavy lifting
-  dependence_table <-  dataset_functional_dependence(dataset, op)
-  indices <- max.col(dependence_table, ties.method = "first")
-  # refers to the highest ranked id path which fully describes the data
-
-  # we build the collection of ids and vars, each row will be a dataframe in the output
-  rd_plan <- tibble(row = seq_along(indices), indices = max.col(dependence_table, ties.method = "first")) %>%
-    mutate(
-      variable = rownames(dependence_table)[row],
-      ids = op$id_plan[indices]
-      ) %>%
-    summarise(
-      ids = head(ids, 1),
-      vars = list(variable),
-      .by = indices
-    )
-
-  # we save the id relation separatly to be loss less on joins
-  used_ids <- rd_plan %>% pull(ids) %>% unlist() %>% unique()
-  id_relation <- ids(dataset)[used_ids]
-
-  # simple helper function
-  reduce_dataset <- function(dataset, ids, vals) {
-    out <- dataset %>%
-      slice_head(n =  1, by = all_of(ids)) %>%
-      select(all_of(c(ids, vals)))
-    attr(out, "dataset_ids") <- ids
-    attr(out, "dataset_state") <- "wide"
-    class(out) <- c("dataset", class(out))
-    out
-  }
-
-  # reducing the dataset into its components
-  decomposed_vals <- purrr::map2(rd_plan$ids, rd_plan$vars, \(ids, vals) {
-    reduce_dataset(dataset, ids, vals)
-  })
-
-  decomposition <- c(list(id_relation), decomposed_vals)
-  attr(decomposition, "dataset_state") <- "decomposed"
-  attr(decomposition, "dataset_ids") <- used_ids
-  class(decomposition) <- c("dataset", class(decomposition))
-
-  decomposition
-}
-
-# build fd table
-# x axis id and id combinations
-# y axis values
-# cells if the id coll can copmletely discibe the value it is set to true
-# this is the golden middle where the heavy lifting is done
-# @internal
-dataset_functional_dependence <- function(dataset, op) {
-  vals <- names(vals(dataset))
-  is_const_within <- function(var, id_vec) {
-    tapply(var, id_vec, \(x) length(unique(x)) <= 1) |> all()
-  }
-
-  out <- lapply(op$id_paths, function(id_path) {
-    sapply(dataset[vals], function(var) is_const_within(var, id_path))
-  })
-
-  names(out) <- purrr::map(op$id_plan, ~ purrr::reduce(.x, paste0)) %>% unlist()
-  out %>% as.data.frame() %>% as.matrix() 
-}
-
+# joining a list of datasets
 dataset_compose <- function(list_df) {
-  if(attr(list_df, "dataset_state") != "decomposed") stop("dataset in composed form is expected but attr(dataset, 'dataset_state') is: ", attr(list_df, "dataset_state"))
+  if (state(list_df) != "decomposed") {
+    stop(
+      "dataset in composed form is expected but attr(dataset, 'dataset_state') is: ",
+      state(list_df)
+    )
+  }
 
   # empty case
-  if(length(attr(list_df, "dataset_ids")) == 0) {
-    return(dataset_empty())
+  if (is_empty_set(list_df[[1]])) {
+    return(list_df[[1]])
   }
-  
+
   # Join all data frames using natural join (join on all common columns)
-  out <- purrr::reduce(list_df, ~ {
-    common_cols <- intersect(names(.x), names(.y))
-    inner_join(.x, .y, by = common_cols)
+  out <- purrr::reduce(
+    list_df,
+    ~ {
+      common_cols <- intersect(names(.x), names(.y))
+      inner_join(.x, .y, by = common_cols)
+    }
+  )
+
+  set_attr(out, ids(list_df), x_axis(list_df), "wide")
+}
+
+# splitting a dataset into a list of joinable datasets.
+dataset_decompose <- function(dataset, strategy = hirarchical_paths) {
+  if (state(dataset) != "wide") {
+    stop(
+      "dataset in wide form is expected but attr(dataset, 'dataset_state') is: ",
+      state(dataset)
+    )
+  }
+
+  # empty case
+  if (is_empty_set(dataset)) {
+    decomposed <- list(dataset)
+    return(set_attr(decomposed, NULL, NULL, "decomposed"))
+  }
+
+  # defines order in which ids and combination of
+  # ids are checkd on their functional dependence
+  paths <- strategy(dataset)
+
+  valc <- val_cols(dataset)
+  mask <- names(dataset) %in% valc
+  rd_plan <- list()
+  col_names <- names(dataset)
+  for (i in seq_len(nrow(paths))) {
+    cols <- df_functional_dependence(unlist(paths[i, "paths"]), dataset[, mask])
+    rd_plan[[i]] <- list(
+      ids = unlist(paths[i, "ids"]),
+      valc = unlist(col_names[mask][cols])
+    )
+    mask[mask] <- !cols # update mask
+  }
+
+  x_axis_t <- x_axis(dataset)
+  # reducing the dataset into smaller "functional" dependent tables
+  decomposition <- purrr::map(rd_plan, \(plan) {
+    slice_dataset(dataset, plan$ids, plan$valc, x_axis_t)
   })
 
-  ids <- purrr::map(list_df, ~ attr(., "dataset_ids")) %>% unlist() %>% unique()
-  attr(out, "dataset_ids") <- ids
-  attr(out, "dataset_state") <- "wide"
-  class(out) <- c("dataset", class(out))
-  out
+  set_attr(decomposition, ids(dataset), x_axis_t, "decomposed")
+}
+
+
+# reduce a dataset to the sepcified id cols and val cols
+slice_dataset <- function(dataset, id_cols, val_cols, x_axis) {
+  out <- dataset %>%
+    dplyr::slice_head(n = 1, by = all_of(unname(id_cols))) %>%
+    select(all_of(unname(c(id_cols, val_cols))))
+  set_attr(out, c(id_cols, x_axis), x_axis, "wide")
+}
+
+
+# for a given vecotr find the functional dependent cols
+# returns vec of bools
+df_functional_dependence <- function(v, df) {
+  preloaded_functional_dependence <- function(b) {
+    tapply(b, v, \(x) length(unique(x)) <= 1) |> all()
+  }
+
+  purrr::map(df, preloaded_functional_dependence) |> as.logical()
+}
+
+
+# strategy hirarchical / in order of ids
+hirarchical_paths <- function(dataset) {
+  idc <- id_cols(dataset)
+  id_ids <- purrr::accumulate(idc, c)
+  paths <- purrr::accumulate(dataset[idc], paste0)
+  tibble(ids = id_ids, paths = paths)
+}
+
+efficient_paths <- function(dataset) {
+  idc <- id_cols(dataset)
+
+  id_plan <- purrr::map(seq_along(idc), ~ combn(idc, .x, simplify = FALSE)) %>%
+    purrr::flatten()
+  id_paths <- purrr::map(
+    id_plan,
+    ~ purrr::reduce(dataset %>% select(all_of(.x)), paste0)
+  )
+
+  tibble(id_plan, id_paths) %>% # this is the golden plan
+    mutate(
+      n_distinct = purrr::map(id_paths, n_distinct) %>% unlist(),
+      n_ids = purrr::map(id_plan, length) %>% unlist()
+    ) %>%
+    arrange(n_distinct, n_ids) %>%
+    select(ids = id_plan, paths = id_paths)
 }

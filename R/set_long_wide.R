@@ -1,86 +1,65 @@
-library(dplyr)
+require(dplyr)
 
-#' Convert Dataset from Wide to Long Format
-#'
-#' Transforms a dataset from wide format (one row per entity, multiple value columns)
-#' to long format (one row per cell, with `variable` and `value` columns).
-#'
-#' **Transformation:**
-#' - Each value cell becomes a separate row
-#' - Creates `variable` column containing the original column name
-#' - Creates `value` column containing the cell value (as character)
-#' - Adds `variable` as an additional ID column
-#'
-#' **State Transition:** `"wide"` → `"long"`
-#'
-#' @param dataset A dataset in wide format.
-#' @return A dataset in long format with ID columns plus `variable` and `value` columns.
-#' @details Requires the input dataset to be in "wide" state. All values are
-#'   converted to character type. The long format is useful for cell-level
-#'   operations and filtering.
-#' @keywords internal
-dataset_to_long <- function(dataset) {
-  ids <- ids(dataset) %>% names()
-  x_axis <- attr(dataset, "dataset_x_axis")
-
-  if(length(ids) == 0) {
-    out <- dataset_empty()
-    attr(out, "dataset_state") <- "wide"
-    return(out)
+# @todo handle non character ids
+#
+wide_to_long <- function(dataset) {
+  if (state(dataset) != "wide") {
+    stop(
+      "dataset in wide form is expected but attr(dataset, 'dataset_state') is: ",
+      state(dataset)
+    )
   }
 
-  if(attr(dataset, "dataset_state") != "wide") stop("dataset in wide form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
+  if (is_empty_set(dataset)) {
+    attr(dataset, "dataset_state") <- "long"
+    return(dataset)
+  }
+
+  # conversion
+  x_axis <- x_axis(dataset)
 
   long <- dataset %>%
-    tidyr::pivot_longer(-all_of(ids), values_transform = as.character) %>%
-    rename_with(~ x_axis, name)
+    tidyr::pivot_longer(val_cols(dataset), values_transform = as.list) %>%
+    rename_with(~x_axis, name)
 
-  attr(long, "dataset_ids") <- c(ids, x_axis)
-  attr(long, "dataset_state") <- "long"
-  attr(long, "dataset_x_axis") <- x_axis
-  class(long) <- c("dataset", class(long))
-  dataset_integrity(long)
+  # setting metadata
+  set_attr(long, ids(dataset), NULL, "long")
 }
 
-#' Convert Dataset from Long to Wide Format
-#'
-#' Transforms a dataset from long format (one row per cell) back to wide format
-#' (one row per entity with multiple value columns).
-#'
-#' **Transformation:**
-#' - Pivots the `variable` column into separate value columns
-#' - Uses the `value` column to populate cell values
-#' - Removes `variable` from the ID columns
-#'
-#' **State Transition:** `"long"` → `"wide"`
-#'
-#' This is the inverse operation of `dataset_to_long()`.
-#'
-#' @param dataset A dataset in long format.
-#' @return A dataset in wide format with the original structure restored.
-#' @details Requires the input dataset to be in "long" state with exactly one
-#'   value column named `value` and an ID column named `variable`. After
-#'   conversion, the dataset is automatically collapsed to remove empty rows
-#'   and columns.
-#' @keywords internal
-dataset_to_wide <- function(dataset, col = NULL) {
-  ids <- ids(dataset) %>% names()
-  vals <- vals(dataset) %>% names()
-  x_axis <- if(is.null(col)) attr(dataset, "dataset_x_axis") else col
+long_to_wide <- function(dataset, col = NULL) {
+  if (state(dataset) != "long") {
+    stop(
+      "dataset in long form is expected but attr(dataset, 'dataset_state') is: ",
+      state(dataset)
+    )
+  }
 
-  # empty case
-  if(length(ids) == 0) return(dataset_empty())
+  if (is_empty_set(dataset)) {
+    attr(dataset, "dataset_state") <- "wide"
+    return(dataset)
+  }
 
-  if(attr(dataset, "dataset_state") != "long") stop("dataset in long form is expected but attr(dataset, 'dataset_state') is: ", attr(dataset, "dataset_state"))
-  if(any(vals != "value")) stop("a data set in long form is expected to only have one, vals column named value")
-  if(!x_axis %in% ids) stop("a data set in long form is expected to have a id column which is called by the x_axis here: ", x_axis)
+  ids <- ids(dataset)
+  valc <- val_cols(dataset)
+  x_axis <- if (is.null(col)) ids[length(ids)] else col
 
+  if (length(valc) != 1) {
+    stop(
+      "a data set in long form is expected to only have one, vals column"
+    )
+  }
+
+  # conversion
   wide <- dataset %>%
-    tidyr::pivot_wider(names_from = all_of(x_axis), values_from = value)
+    tidyr::pivot_wider(
+      names_from = all_of(x_axis),
+      values_from = all_of(valc),
+    ) %>%
+    mutate(across(
+      -all_of(setdiff(ids, x_axis)),
+      ~ purrr::list_simplify(., strict = FALSE)
+    ))
 
-  attr(wide, "dataset_ids") <- setdiff(c(ids), x_axis)
-  attr(wide, "dataset_x_axis") <- x_axis
-  attr(wide, "dataset_state") <- "wide"
-  class(wide) <- c("dataset", class(wide))
-  dataset_integrity(wide)
+  # setting metadata
+  set_attr(wide, ids, x_axis, "wide")
 }

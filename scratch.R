@@ -1,12 +1,22 @@
 ds <- dataset_build(
   tibble(
-    id = 1:4%%2,
+    id = 1:4 %% 2,
     lab = "Hi",
-    code = c("HI", "HI", "HO", "HO"), 
+    code = c("HI", "HI", "HO", "HO"),
     labs = 2:5
   ),
   ids = c("id", "code")
 )
+
+dataset <- ds
+
+ds %>%
+  dataset_decompose() %>%
+  dataset_compose()
+
+ds %>%
+  dataset_decompose(efficient_paths) %>%
+  dataset_compose()
 
 ds <- dataset_build(
   tibble(
@@ -18,10 +28,20 @@ ds <- dataset_build(
   ids = c("varname", "code")
 )
 
-ds == ds %>%
-  dataset_decompose() %>%
-  dataset_compose()
-  .[[3]] %>%
+
+ds %>%
+  wide_to_long() %>%
+  # long_to_wide() %>%
+  long_to_wide("code") %>%
+  wide_to_long() %>%
+  long_to_wide("variable")
+
+
+ds ==
+  ds %>%
+    dataset_decompose() %>%
+    dataset_compose()
+.[[3]] %>%
   dataset_to_long()
 
 # some bug here
@@ -34,21 +54,21 @@ ds %>%
   dataset_to_wide("variable")
 
 
-df <-   tibble(
-    id = 1:4%%2,
-    lab = "Hi",
-    code = 1:4, 
-    labs = 2:5
-  )
+df <- tibble(
+  id = 1:4 %% 2,
+  lab = "Hi",
+  code = 1:4,
+  labs = 2:5
+)
 
 ids <- c("id", "code")
 
 ds <- dataset_build(
   tibble(
-    id = 1:4%%2,
+    id = 1:4 %% 2,
     lab = "Hi",
-    code = 1:4, 
-    labs = 2:5%%4
+    code = 1:4,
+    labs = 2:5 %% 4
   ),
   ids = c("id", "code")
 )
@@ -85,23 +105,23 @@ a - a
 dataset_diff(A, B)
 
 # these are fun
-ds %>% dataset_to_long() %>%
-  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+ds %>% dataset_to_long() %>% jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
 # these are fun but not that convincing
-ds %>% dataset_to_long() %>%
+ds %>%
+  dataset_to_long() %>%
   dataset_to_wide("code") %>%
   dataset_decompose() %>%
   jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
 
 # this gets second place and is loss free. but i guess we can optimize it
-ds %>% dataset_decompose() %>%
+ds %>%
+  dataset_decompose() %>%
   jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
 # this gets closest to what i want to have but has loss...
-ds %>% dataset_flatten() %>%
-  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+ds %>% dataset_flatten() %>% jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
 # i think it is nice that ordering properties are stored in the attributes
 # but we need to treat them more sacredly if we really want to do this
@@ -109,19 +129,20 @@ ds %>% dataset_flatten() %>%
 # hirarcy as otherwise it can be impossible to decipher to which id a name belongs
 # currently it is clearly identifiable with the infix and postfix.
 ds %>%
-  {x <- .; attr(x, "dataset_ids") <- c("code", "varname"); x} %>%
+  {
+    x <- .
+    attr(x, "dataset_ids") <- c("code", "varname")
+    x
+  } %>%
   dataset_flatten() %>%
   dataset_flatten_undo()
-  jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
+jsonlite::toJSON(pretty = TRUE, auto_unbox = TRUE)
 
 
-ds %>% dataset_flatten("varname") %>%
-  dataset_flatten_undo()
+ds %>% dataset_flatten("varname") %>% dataset_flatten_undo()
 
 ds %>% dataset_hirarchical_decompose()
 ds %>% dataset_decompose()
 
 a <- A
 b <- B
-
-
