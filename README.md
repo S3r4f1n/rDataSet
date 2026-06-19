@@ -324,7 +324,7 @@ vals(A)
 ## Mathematical Properties
 
 The set operations satisfy the fundamental identity:
-`a = (a ∩ b) ∪ (a \ b)`
+`a = (a n b) u (a / b)`
 
 ``` r
 # Verify: A == (A > B) + (A - B)
@@ -334,4 +334,4 @@ all(vals(A == (A > B) + (A - B)), na.rm = TRUE)
 
 ## License
 
-GPL (\>= 3)
+GPL (>= 3)
