@@ -10,7 +10,9 @@ test_that("dataset_compose works with single dataset", {
   df <- tibble(id1 = c(1, 2), id2 = c("A", "B"), val1 = c(10, 20))
   ds <- dataset_build(df, c("id1", "id2"))
   
-  result <- dataset_compose(list(ds))
+  # Need to decompose first to get proper input for compose
+  decomposed <- dataset_decompose(ds)
+  result <- dataset_compose(decomposed)
   expect_equal(state(result), "wide")
   expect_equal(ids(result), c("id1", "id2"))
   expect_equal(x_axis(result), "variable")
@@ -24,7 +26,13 @@ test_that("dataset_compose works with multiple datasets", {
   ds1 <- dataset_build(df1, c("id1", "id2"))
   ds2 <- dataset_build(df2, c("id1", "id2"))
   
-  result <- dataset_compose(list(ds1, ds2))
+  # Decompose both datasets first
+  decomposed1 <- dataset_decompose(ds1)
+  decomposed2 <- dataset_decompose(ds2)
+  
+  # Combine the decomposed lists
+  combined_list <- c(decomposed1, decomposed2)
+  result <- dataset_compose(combined_list)
   expect_equal(state(result), "wide")
   expect_equal(ids(result), c("id1", "id2"))
   expect_equal(x_axis(result), "variable")
