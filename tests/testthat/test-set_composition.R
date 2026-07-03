@@ -99,10 +99,10 @@ test_that("df_functional_dependence works correctly", {
   )
   
   result <- df_functional_dependence(df$id1, df)
-  expect_equal(result, c(TRUE, TRUE, FALSE, FALSE))  # id1 should be functionally dependent on itself
+  expect_equal(result, c(TRUE, TRUE, TRUE, FALSE))  # id1, id2, val1 are functionally dependent on id1; val2 is not
   
   result <- df_functional_dependence(df$id2, df)
-  expect_equal(result, c(FALSE, FALSE, TRUE, TRUE))  # id2 should be functionally dependent on itself
+  expect_equal(result, c(TRUE, TRUE, TRUE, FALSE))  # id1, id2, val1 are functionally dependent on id2; val2 is not
 })
 
 test_that("hirarchical_paths works correctly", {
