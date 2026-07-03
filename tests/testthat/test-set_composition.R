@@ -1,7 +1,9 @@
 test_that("dataset_compose works with empty dataset", {
   # Test empty dataset composition
   empty_ds <- dataset_build(tibble(), character(0))
-  result <- dataset_compose(list(empty_ds))
+  # Decompose first to get proper input for compose  
+  decomposed <- dataset_decompose(empty_ds)
+  result <- dataset_compose(decomposed)
   expect_true(is_empty_set(result))
 })
 
