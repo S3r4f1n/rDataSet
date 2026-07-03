@@ -20,7 +20,8 @@ dataset_build <- function(df, ids) {
     stop("the df must be a dataframe")
   }
 
-  set_attr(df, c(ids, "variable"), "variable", "wide", TRUE)
+  set_attr(df, c(ids, "variable"), "variable", "wide", TRUE) |>
+    dataset_valid()
 }
 
 # helper to never forget setting some attributes
@@ -100,4 +101,15 @@ print.dataset <- function(x, ...) {
 
   NextMethod() # prints the tibble
   invisible(x)
+}
+
+dataset_valid <- function(ds) {
+  state <- state(ds)
+  if (!state %in% c("wide", "long", "decomposed")) {
+    stop("error invalid state: ", state)
+  }
+  if (any(duplicated(ds[id_cols(ds)]))) {
+    stop("ids do not uniquely identify rows")
+  }
+  ds
 }

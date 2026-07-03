@@ -96,6 +96,12 @@ hirarchical_paths <- function(dataset) {
   tibble(ids = id_ids, paths = paths)
 }
 
+#' this creates all combinations of id paths and arranges them
+#' by the number of distinct values in a path (lower to more) and
+#' by the number of ids cols in a path. The higher up in the list
+#' the earlier it is used for the decomposition. later paths might
+#' not be used at all. exponential time in number of id columns. But these
+#' should be generaly only a few (up to 10 different ids)
 efficient_paths <- function(dataset) {
   idc <- id_cols(dataset)
 
