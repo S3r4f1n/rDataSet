@@ -1,4 +1,5 @@
 library(dplyr)
+
 #' Set Difference
 #'
 #' Returns values from dataset `a` that are not present in dataset `b`.
@@ -87,41 +88,30 @@ dataset_intersect <- function(a, b) {
     )
   }
 
-  if (nrow(a) == 0) {
+  # empty case
+  if (is_empty_set(a)) {
     return(a)
   }
-  if (nrow(b) == 0) {
+  if (is_empty_set(b)) {
     return(b)
   }
 
   ids <- id_a
-  common <- setdiff(intersect(names(a), names(b)), ids)
-  merged <- inner_join(
-    a %>%
-      select(all_of(c(ids, common))) %>%
-      rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
-    b %>%
-      select(all_of(c(ids, common))) %>%
-      rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common)),
-    by = ids,
-    keep = FALSE
-  )
+  state <- state(a)
+  x_axis <- x_axis(a)
+
+  a_long <- to_long(a) %>% rename(value_dataset_a_ending = "value")
+  b_long <- to_long(b) %>% rename(value_dataset_b_ending = "value")
+
+  merged <- inner_join(a_long, b_long, by = ids, keep = FALSE)
 
   out <- merged %>%
     mutate(
-      purrr::map2_dfc(
-        across(matches("_dataset_a_ending$")),
-        across(matches("_dataset_b_ending$")),
-        function(x, y) if_else(!is.na(y), x, NA)
-      )
+      value = if_else(!is.na(value_dataset_b_ending), value_dataset_a_ending, NA)
     ) %>%
-    rename_with(
-      function(x) sub("_dataset_a_ending$", "", x),
-      matches("_dataset_a_ending$")
-    ) %>%
-    select(-matches("_dataset_b_ending$"))
+    select(-matches("_dataset_._ending$"))
 
-  out <- set_attr(out, ids(a), x_axis(a), "wide")
+  out <- set_attr(out, ids, x_axis, state)
   dataset_collapse(out)
 }
 
@@ -157,39 +147,29 @@ dataset_union <- function(a, b) {
   }
 
   # empty case
-  if (nrow(a) == 0) {
+  if (is_empty_set(a)) {
     return(b)
   }
-  if (nrow(b) == 0) {
+  if (is_empty_set(b)) {
     return(a)
   }
 
   ids <- id_a
-  common <- setdiff(intersect(names(a), names(b)), ids)
-  merged <- full_join(
-    a %>%
-      rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
-    b %>%
-      rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common)),
-    by = ids,
-    keep = FALSE
-  )
+  state <- state(a)
+  x_axis <- x_axis(a)
+
+  a_long <- to_long(a) %>% rename(value_dataset_a_ending = "value")
+  b_long <- to_long(b) %>% rename(value_dataset_b_ending = "value")
+
+  merged <- full_join(a_long, b_long, by = ids, keep = FALSE)
 
   out <- merged %>%
     mutate(
-      purrr::map2_dfc(
-        across(matches("_dataset_a_ending$")),
-        across(matches("_dataset_b_ending$")),
-        function(x, y) if_else(is.na(x), y, x)
-      )
+      value = if_else(is.na(value_dataset_a_ending), value_dataset_b_ending, value_dataset_a_ending)
     ) %>%
-    rename_with(
-      function(x) sub("_dataset_a_ending$", "", x),
-      matches("_dataset_a_ending$")
-    ) %>%
-    select(-matches("_dataset_b_ending$"))
+    select(-matches("_dataset_._ending$"))
 
-  out <- set_attr(out, ids(a), x_axis(a), "wide")
+  out <- set_attr(out, ids, x_axis, state)
   dataset_collapse(out)
 }
 
@@ -253,10 +233,10 @@ dataset_equality <- function(a, b) {
   }
 
   # empty case
-  if (nrow(a) == 0 && nrow(b) == 0) {
+  if (is_empty_set(a) && is_empty_set(b)) {
     return(TRUE)
   }
-  if (nrow(a) == 0 || nrow(b) == 0) {
+  if (is_empty_set(a) || is_empty_set(b)) {
     return(FALSE)
   }
 
