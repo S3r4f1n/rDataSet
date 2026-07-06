@@ -1,42 +1,21 @@
 dataset_transfrom <- function(ds, to, x_axis = NULL, decompose_strategy = hirarchical_paths) {
-  from <- state(ds) # wide, long, decomposed
+  from <- state(ds)
   
   if (from == to) {
     return(ds)
   }
   
-  # Handle transformations from wide to other states
-  if (from == "wide" && to == "long") {
-    return(wide_to_long(ds))
-  }
+  transition <- paste0(from, "_to_", to)
   
-  if (from == "wide" && to == "decomposed") {
-    return(dataset_decompose(ds, strategy = decompose_strategy))
-  }
+  result <- switch(transition,
+    "wide_to_long" = wide_to_long(ds),
+    "wide_to_decomposed" = dataset_decompose(ds, strategy = decompose_strategy),
+    "long_to_wide" = long_to_wide(ds, col = x_axis),
+    "long_to_decomposed" = dataset_decompose(long_to_wide(ds, col = x_axis), strategy = decompose_strategy),
+    "decomposed_to_wide" = dataset_compose(ds),
+    "decomposed_to_long" = wide_to_long(dataset_compose(ds)),
+    stop("Unsupported transformation from ", from, " to ", to)
+  )
   
-  # Handle transformations from long to other states
-  if (from == "long" && to == "wide") {
-    return(long_to_wide(ds, col = x_axis))
-  }
-  
-  if (from == "long" && to == "decomposed") {
-    # Transform long to wide then decompose
-    wide_ds <- long_to_wide(ds, col = x_axis)
-    return(dataset_decompose(wide_ds, strategy = decompose_strategy))
-  }
-  
-  # Handle transformations from decomposed to other states
-  if (from == "decomposed" && to == "wide") {
-    # Need to compose the decomposed dataset back to wide
-    return(dataset_compose(ds))
-  }
-  
-  if (from == "decomposed" && to == "long") {
-    # Transform decomposed to wide then to long
-    wide_ds <- dataset_compose(ds)
-    return(wide_to_long(wide_ds))
-  }
-  
-  # If we get here, the transformation isn't supported
-  stop("Unsupported transformation from ", from, " to ", to)
+  return(result)
 }
