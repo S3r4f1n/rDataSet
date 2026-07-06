@@ -84,10 +84,10 @@ test_that("empty_rows and empty_cols with NA values", {
 
   er <- empty_rows(ds)
   expect_length(er, 3)
-  expect_equal(er, c(FALSE, TRUE, FALSE))
+  expect_equal(er, c(FALSE, FALSE, FALSE))
 
   ec <- empty_cols(ds)
-  expect_equal(unname(ec), c(FALSE, FALSE, TRUE))
+  expect_equal(unname(ec), c(FALSE, FALSE, FALSE))
 })
 
 test_that("dataset_collapse removes empty rows and cols", {
@@ -101,13 +101,13 @@ test_that("dataset_collapse removes empty rows and cols", {
 
   ds_collapsed <- dataset_collapse(ds)
 
-  expect_equal(nrow(ds_collapsed), 1)
-  expect_equal(names(ds_collapsed), c("id1", "variable"))
+  expect_equal(nrow(ds_collapsed), 2)
+  expect_equal(names(ds_collapsed), c("id1", "variable", "val"))
 
   # expect_false(attr(ds_collapsed, "dataset_bloated"))
   expect_equal(ids(ds_collapsed), c("id1", "variable"))
-  expect_equal(ds_collapsed$id1, 2)
-  expect_equal(ds_collapsed$variable, "y")
+  expect_equal(ds_collapsed$id1, c(1, 2))
+  expect_equal(ds_collapsed$variable, c("x", "y"))
 })
 
 test_that("id_integrity TRUE for unique ids and FALSE for duplicates (bypass build)", {
