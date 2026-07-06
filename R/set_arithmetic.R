@@ -18,8 +18,8 @@ library(dplyr)
 #' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_minus <- function(a, b) {
-  id_a <- id_cols(a)
-  id_b <- id_cols(b)
+  id_a <- ids(a)
+  id_b <- ids(b)
   if (!identical(id_a, id_b)) {
     stop(
       "ids cols don't match, datasets are incomparable:",
@@ -45,16 +45,21 @@ dataset_minus <- function(a, b) {
   a <- to_long(a) %>% rename(value_dataset_a_ending = "value")
   b <- to_long(b) %>% rename(value_dataset_b_ending = "value")
 
-  merged <- left_join(a, b, by = ids, keep = FALSE)
+  merged <- left_join(a, b, by = id_a, keep = FALSE)
 
   out <- merged %>%
     mutate(
-      value = if_else(is.na(value_dataset_b_ending), value_dataset_a_ending, NA)
+      value = if_else(
+        is.na(value_dataset_b_ending),
+        value_dataset_a_ending,
+        as.list(NA)
+      )
     ) %>%
     select(-matches("_dataset_._ending$"))
 
-  out <- set_attr(out, ids, x_axis, state)
-  dataset_collapse(out)
+  set_attr(out, ids, NULL, "long") |>
+    dataset_transfrom(state, x_axis) |>
+    dataset_collapse()
 }
 
 #' Set Intersection
@@ -76,8 +81,8 @@ dataset_minus <- function(a, b) {
 #' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_intersect <- function(a, b) {
-  id_a <- id_cols(a)
-  id_b <- id_cols(b)
+  id_a <- ids(a)
+  id_b <- ids(b)
   if (!identical(id_a, id_b)) {
     stop(
       "ids cols don't match, datasets are incomparable:",
@@ -107,12 +112,17 @@ dataset_intersect <- function(a, b) {
 
   out <- merged %>%
     mutate(
-      value = if_else(!is.na(value_dataset_b_ending), value_dataset_a_ending, NA)
+      value = if_else(
+        !is.na(value_dataset_b_ending),
+        value_dataset_a_ending,
+        as.list(NA)
+      )
     ) %>%
     select(-matches("_dataset_._ending$"))
 
-  out <- set_attr(out, ids, x_axis, state)
-  dataset_collapse(out)
+  set_attr(out, ids, NULL, "long") |>
+    dataset_transfrom(state, x_axis) |>
+    dataset_collapse()
 }
 
 #' Set Union
@@ -134,8 +144,8 @@ dataset_intersect <- function(a, b) {
 #' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_union <- function(a, b) {
-  id_a <- id_cols(a)
-  id_b <- id_cols(b)
+  id_a <- ids(a)
+  id_b <- ids(b)
   if (!identical(id_a, id_b)) {
     stop(
       "ids cols don't match, datasets are incomparable:",
@@ -165,12 +175,17 @@ dataset_union <- function(a, b) {
 
   out <- merged %>%
     mutate(
-      value = if_else(is.na(value_dataset_a_ending), value_dataset_b_ending, value_dataset_a_ending)
+      value = if_else(
+        is.na(value_dataset_a_ending),
+        value_dataset_b_ending,
+        value_dataset_a_ending
+      )
     ) %>%
     select(-matches("_dataset_._ending$"))
 
-  out <- set_attr(out, ids, x_axis, state)
-  dataset_collapse(out)
+  set_attr(out, ids, NULL, "long") |>
+    dataset_transfrom(state, x_axis) |>
+    dataset_collapse()
 }
 
 #' Set Equality
@@ -202,8 +217,8 @@ dataset_union <- function(a, b) {
 #'
 #' @todo make it work for other formates
 dataset_equality <- function(a, b) {
-  id_a <- id_cols(a)
-  id_b <- id_cols(b)
+  id_a <- ids(a)
+  id_b <- ids(b)
 
   # considered an error. Ids cols must match
   if (!identical(id_a, id_b)) {
