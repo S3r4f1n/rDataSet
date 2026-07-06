@@ -17,20 +17,20 @@ library(dplyr)
 #' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_minus <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
-  if(any(names(id_a) != names(id_b))) {
+  id_a <- id_cols(a)
+  id_b <- id_cols(b)
+  if (!identical(id_a, id_b)) {
     stop("ids cols don't match, datasets are incomparable:",
-      "\nids a: ", paste(names(id_a), collapse = ", "),
-      "\nids b: ", paste(names(id_b), collapse = ", ")
+      "\nids a: ", paste(id_a, collapse = ", "),
+      "\nids b: ", paste(id_b, collapse = ", ")
     )
   }
 
   # empty case
-  if(nrow(a) == 0) return(a)
-  if(nrow(b) == 0) return(a)
+  if (nrow(a) == 0) return(a)
+  if (nrow(b) == 0) return(a)
 
-  ids <- names(id_a)
+  ids <- id_a
   common <- setdiff(intersect(names(a), names(b)), ids)
   merged <- left_join(
     a %>% rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
@@ -48,7 +48,8 @@ dataset_minus <- function(a, b) {
     ) %>%
     rename_with(function(x) sub("_dataset_a_ending$", "", x), matches("_dataset_a_ending$")) %>%
     select(-matches("_dataset_b_ending$"))
-  
+
+  out <- set_attr(out, ids(a), x_axis(a), "wide")
   dataset_collapse(out)
 }
 
@@ -71,19 +72,19 @@ dataset_minus <- function(a, b) {
 #' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_intersect <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
-  if(any(names(id_a) != names(id_b))) {
+  id_a <- id_cols(a)
+  id_b <- id_cols(b)
+  if (!identical(id_a, id_b)) {
     stop("ids cols don't match, datasets are incomparable:",
-      "\nids a: ", paste(names(id_a), collapse = ", "),
-      "\nids b: ", paste(names(id_b), collapse = ", ")
+      "\nids a: ", paste(id_a, collapse = ", "),
+      "\nids b: ", paste(id_b, collapse = ", ")
     )
   }
 
-  if(nrow(a) == 0) return(a)
-  if(nrow(b) == 0) return(b)
+  if (nrow(a) == 0) return(a)
+  if (nrow(b) == 0) return(b)
 
-  ids <- names(id_a)
+  ids <- id_a
   common <- setdiff(intersect(names(a), names(b)), ids)
   merged <- inner_join(
     a %>% select(all_of(c(ids, common))) %>% rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
@@ -102,7 +103,8 @@ dataset_intersect <- function(a, b) {
     ) %>%
     rename_with(function(x) sub("_dataset_a_ending$", "", x), matches("_dataset_a_ending$")) %>%
     select(-matches("_dataset_b_ending$"))
-  
+
+  out <- set_attr(out, ids(a), x_axis(a), "wide")
   dataset_collapse(out)
 }
 
@@ -125,25 +127,25 @@ dataset_intersect <- function(a, b) {
 #' @details Error if ID columns of `a` and `b` do not match.
 #' @keywords internal
 dataset_union <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
-  # if(any(names(id_a) != names(id_b))) {
-  #   stop("ids cols don't match, datasets are incomparable:",
-  #     "\nids a: ", paste(names(id_a), collapse = ", "),
-  #     "\nids b: ", paste(names(id_b), collapse = ", ")
-  #   )
-  # }
+  id_a <- id_cols(a)
+  id_b <- id_cols(b)
+  if (!identical(id_a, id_b)) {
+    stop("ids cols don't match, datasets are incomparable:",
+      "\nids a: ", paste(id_a, collapse = ", "),
+      "\nids b: ", paste(id_b, collapse = ", ")
+    )
+  }
 
   # empty case
-  if(nrow(a) == 0) return(b)
-  if(nrow(b) == 0) return(a)
+  if (nrow(a) == 0) return(b)
+  if (nrow(b) == 0) return(a)
 
-  ids <- c(names(id_a), names(id_b))
+  ids <- id_a
   common <- setdiff(intersect(names(a), names(b)), ids)
   merged <- full_join(
     a %>% rename_with(function(x) paste0(x, "_dataset_a_ending"), all_of(common)),
     b %>% rename_with(function(x) paste0(x, "_dataset_b_ending"), all_of(common)),
-    by = intersect(names(id_a), names(id_b)),
+    by = ids,
     keep = FALSE
   )
 
@@ -157,9 +159,9 @@ dataset_union <- function(a, b) {
     ) %>%
     rename_with(function(x) sub("_dataset_a_ending$", "", x), matches("_dataset_a_ending$")) %>%
     select(-matches("_dataset_b_ending$"))
-  
-  class(out) <- c("dataset", class(out))
-  dataset_integrity(out)
+
+  out <- set_attr(out, ids(a), x_axis(a), "wide")
+  dataset_collapse(out)
 }
 
 #' Set Equality
@@ -189,57 +191,35 @@ dataset_union <- function(a, b) {
 #'   mismatches (columns, rows, or values).
 #' @keywords internal
 dataset_equality <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
+  id_a <- id_cols(a)
+  id_b <- id_cols(b)
 
   # considered an error. Ids cols must match
-  if(any(names(id_a) != names(id_b))) {
+  if (!identical(id_a, id_b)) {
     stop("ids cols don't match, datasets are incomparable:",
-      "\nids a: ", paste(names(id_a), collapse = ", "),
-      "\nids b: ", paste(names(id_b), collapse = ", ")
+      "\nids a: ", paste(id_a, collapse = ", "),
+      "\nids b: ", paste(id_b, collapse = ", ")
     )
   }
 
-  val_a <- vals(a)
-  val_b <- vals(b)
+  val_a <- val_cols(a)
+  val_b <- val_cols(b)
 
-  col_match <- intersect(names(val_a), names(val_b))
-
-  if(any(!names(val_a) %in% col_match, !names(val_b) %in% col_match)) {
-    warning("collumns don't match:",
-      "\ncommon cols: ", paste(names(col_match), collapse = ", "),
-      "\nextra cols in a: ", paste(setdiff(names(val_a), col_match), collapse = ", "),
-      "\nextra cols in b: ", paste(setdiff(names(val_b), col_match), collapse = ", ")
+  if (!setequal(val_a, val_b)) {
+    warning("value columns don't match:",
+      "\ncommon cols: ", paste(intersect(val_a, val_b), collapse = ", "),
+      "\nextra cols in a: ", paste(setdiff(val_a, val_b), collapse = ", "),
+      "\nextra cols in b: ", paste(setdiff(val_b, val_a), collapse = ", ")
     )
     return(FALSE)
   }
 
   # empty case
-  if(nrow(a) == 0 && nrow(b) == 0) return(TRUE)
-  if(xor(nrow(a) == 0, nrow(b) == 0)) return(FALSE)
+  if (nrow(a) == 0 && nrow(b) == 0) return(TRUE)
+  if (nrow(a) == 0 || nrow(b) == 0) return(FALSE)
 
-  id_match <- inner_join(id_a, id_b, by = names(id_a), keep = FALSE)
+  long_a <- wide_to_long(a) %>% dplyr::arrange(dplyr::across(dplyr::everything()))
+  long_b <- wide_to_long(b) %>% dplyr::arrange(dplyr::across(dplyr::everything()))
 
-  if(any(nrow(id_a) != nrow(id_match), nrow(id_b) != nrow(id_match))) {
-    warning("rows missmatch:",
-      "\nextra rows in a: ", paste(anti_join(id_a, id_match, by = names(id_a)), collapse = ", "),
-      "\nextra rows in b: ", paste(anti_join(id_b, id_match, by = names(id_b)), collapse = ", ")
-    )
-    return(FALSE)
-  }
-
-  long_a <- dataset_to_long(a)
-  long_b <- dataset_to_long(b)
-
-  long_match <- inner_join(long_a, long_b, by = names(long_a), keep = FALSE)
-
-  if(any(nrow(long_a) != nrow(long_match), nrow(long_b) != nrow(long_match))) {
-    warning("rows missmatch:",
-      "\nextra rows in a: ", paste(anti_join(long_a, long_match, by = names(long_a)), collapse = ", "),
-      "\nextra rows in b: ", paste(anti_join(long_b, long_match, by = names(long_b)), collapse = ", ")
-    )
-    return(FALSE)
-  }
-
-  return(TRUE)
+  isTRUE(all.equal(long_a, long_b, check.attributes = FALSE))
 }
