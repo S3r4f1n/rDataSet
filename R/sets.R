@@ -14,10 +14,10 @@ require(dplyr)
 
 dataset_build <- function(df, ids) {
   if (!is.character(ids)) {
-    stop("ids must be vector of character")
+    stop(paste0("ids must be vector of character but is: ", typeof(ids)))
   }
   if (!is.data.frame(df)) {
-    stop("the df must be a dataframe")
+    stop(paste0("the df must be a dataframe but is: ", class(ids)))
   }
 
   set_attr(df, c(ids, "variable"), "variable", "wide", TRUE) |>
@@ -30,9 +30,9 @@ set_attr <- function(df, ids, x_axis, state, bloated = NULL) {
   attr(df, "dataset_x_axis") <- x_axis
   attr(df, "dataset_state") <- state
   if (!is.null(bloated)) {
-    attr(df, "dataset_bloated") <- bloated
+    # attr(df, "dataset_bloated") <- bloated # not used currently
   }
-  class(df) <- c("dataset", class(df))
+  class(df) <- union("dataset", class(df))
 
   df
 }
@@ -73,7 +73,7 @@ empty_rows <- function(dataset) {
 empty_cols <- function(dataset) {
   valc <- val_cols(dataset)
   cols <- colSums(is.na(dataset[valc])) > 0
-  c(rep(FALSE, id_cols()), cols)
+  c(rep(FALSE, length(id_cols(dataset))), cols) # asumes ids come always first
 }
 
 empty_ids <- function(dataset) {
@@ -82,13 +82,23 @@ empty_ids <- function(dataset) {
 
 dataset_collapse <- function(dataset) {
   df <- dataset[!empty_rows(dataset), !empty_cols(dataset)]
-  attr(df, "dataset_bloated") <- FALSE
-  df
+  set_attr(df, ids(dataset), x_axis(dataset), state(dataset), bloated = FALSE)
 }
 
 id_integrity <- function(dataset) {
   idc <- id_cols(dataset)
   !any(duplicated(dataset[idc]))
+}
+
+dataset_valid <- function(ds) {
+  state <- state(ds)
+  if (!state %in% c("wide", "long", "decomposed")) {
+    stop("error invalid state: ", state)
+  }
+  if (!id_integrity(ds)) {
+    stop("ids do not uniquely identify rows")
+  }
+  ds
 }
 
 print.dataset <- function(x, ...) {
@@ -101,15 +111,4 @@ print.dataset <- function(x, ...) {
 
   NextMethod() # prints the tibble
   invisible(x)
-}
-
-dataset_valid <- function(ds) {
-  state <- state(ds)
-  if (!state %in% c("wide", "long", "decomposed")) {
-    stop("error invalid state: ", state)
-  }
-  if (any(duplicated(ds[id_cols(ds)]))) {
-    stop("ids do not uniquely identify rows")
-  }
-  ds
 }

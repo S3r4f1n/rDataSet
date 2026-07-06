@@ -1,24 +1,32 @@
 library(testthat)
 
-context("set.R")
-
 test_that("dataset_build with valid inputs", {
-  df <- data.frame(id1 = c(1,2), id2 = c("a","b"), variable = c("x","y"), val = c(10,20), stringsAsFactors = FALSE)
-  ids <- c("id1","id2")
+  df <- data.frame(
+    id1 = c(1, 2),
+    id2 = c("a", "b"),
+    variable = c("x", "y"),
+    val = c(10, 20),
+    stringsAsFactors = FALSE
+  )
+  ids <- c("id1", "id2")
   ds <- dataset_build(df, ids)
 
   expect_s3_class(ds, "dataset")
-  expect_equal(attr(ds, "dataset_ids"), c("id1","id2","variable"))
+  expect_equal(attr(ds, "dataset_ids"), c("id1", "id2", "variable"))
   expect_equal(attr(ds, "dataset_x_axis"), "variable")
   expect_equal(attr(ds, "dataset_state"), "wide")
-  expect_true(attr(ds, "dataset_bloated"))
+  # expect_true(attr(ds, "dataset_bloated"))
 })
 
 test_that("dataset_build errors", {
-  expect_error(dataset_build(data.frame(a=1:2), 5),
-               "ids must be vector of character")
-  expect_error(dataset_build(matrix(1:4,2,2), c("col1","col2")),
-               "the df must be a dataframe")
+  expect_error(
+    dataset_build(data.frame(a = 1:2), 5),
+    "ids must be vector of character"
+  )
+  expect_error(
+    dataset_build(matrix(1:4, 2, 2), c("col1", "col2")),
+    "the df must be a dataframe"
+  )
 })
 
 test_that("empty_set", {
@@ -40,7 +48,12 @@ test_that("is_empty_set on non-empty dataset", {
 })
 
 test_that("x_axis, ids, state, id_cols, val_cols", {
-  df <- data.frame(id1 = 1:2, variable = c("x","y"), val = 10:11, stringsAsFactors = FALSE)
+  df <- data.frame(
+    id1 = 1:2,
+    variable = c("x", "y"),
+    val = 10:11,
+    stringsAsFactors = FALSE
+  )
   ds <- dataset_build(df, "id1")
 
   expect_equal(x_axis(ds), "variable")
@@ -52,16 +65,21 @@ test_that("x_axis, ids, state, id_cols, val_cols", {
 
 test_that("set_attr allows custom attributes", {
   df <- data.frame(a = 1, b = 2, stringsAsFactors = FALSE)
-  res <- set_attr(df, c("a","b","c"), "x", "long", FALSE)
+  res <- set_attr(df, c("a", "b", "c"), "x", "long", FALSE)
   expect_s3_class(res, "dataset")
-  expect_equal(attr(res, "dataset_ids"), c("a","b","c"))
+  expect_equal(attr(res, "dataset_ids"), c("a", "b", "c"))
   expect_equal(attr(res, "dataset_x_axis"), "x")
   expect_equal(attr(res, "dataset_state"), "long")
-  expect_equal(attr(res, "dataset_bloated"), FALSE)
+  # expect_equal(attr(res, "dataset_bloated"), FALSE)
 })
 
 test_that("empty_rows and empty_cols with NA values", {
-  df <- data.frame(id1 = 1:3, variable = c("x","y","z"), val = c(10, NA, 30), stringsAsFactors = FALSE)
+  df <- data.frame(
+    id1 = 1:3,
+    variable = c("x", "y", "z"),
+    val = c(10, NA, 30),
+    stringsAsFactors = FALSE
+  )
   ds <- dataset_build(df, "id1")
 
   er <- empty_rows(ds)
@@ -69,11 +87,16 @@ test_that("empty_rows and empty_cols with NA values", {
   expect_equal(er, c(FALSE, TRUE, FALSE))
 
   ec <- empty_cols(ds)
-  expect_equal(ec, c(FALSE, FALSE, TRUE))
+  expect_equal(unname(ec), c(FALSE, FALSE, TRUE))
 })
 
 test_that("dataset_collapse removes empty rows and cols", {
-  df <- data.frame(id1 = 1:2, variable = c("x","y"), val = c(NA, 20), stringsAsFactors = FALSE)
+  df <- data.frame(
+    id1 = 1:2,
+    variable = c("x", "y"),
+    val = c(NA, 20),
+    stringsAsFactors = FALSE
+  )
   ds <- dataset_build(df, "id1")
 
   ds_collapsed <- dataset_collapse(ds)
@@ -81,34 +104,47 @@ test_that("dataset_collapse removes empty rows and cols", {
   expect_equal(nrow(ds_collapsed), 1)
   expect_equal(names(ds_collapsed), c("id1", "variable"))
 
-  expect_false(attr(ds_collapsed, "dataset_bloated"))
-  expect_equal(ids(ds_collapsed), c("id1","variable"))
+  # expect_false(attr(ds_collapsed, "dataset_bloated"))
+  expect_equal(ids(ds_collapsed), c("id1", "variable"))
   expect_equal(ds_collapsed$id1, 2)
   expect_equal(ds_collapsed$variable, "y")
 })
 
 test_that("id_integrity TRUE for unique ids and FALSE for duplicates (bypass build)", {
-  df_uniq <- data.frame(id1 = 1:2, variable=c("a","b"), val=10:11, stringsAsFactors = FALSE)
-  ds_uniq <- set_attr(df_uniq, c("id1","variable"), "variable", "wide")
+  df_uniq <- data.frame(
+    id1 = 1:2,
+    variable = c("a", "b"),
+    val = 10:11,
+    stringsAsFactors = FALSE
+  )
+  ds_uniq <- set_attr(df_uniq, c("id1", "variable"), "variable", "wide")
   expect_true(id_integrity(ds_uniq))
 
-  df_dup <- data.frame(id1 = c(1,1), variable=c("a","b"), val=10:11, stringsAsFactors = FALSE)
-  ds_dup <- set_attr(df_dup, c("id1","variable"), "variable", "wide")
+  df_dup <- data.frame(
+    id1 = c(1, 1),
+    variable = c("a", "b"),
+    val = 10:11,
+    stringsAsFactors = FALSE
+  )
+  ds_dup <- set_attr(df_dup, c("id1", "variable"), "variable", "wide")
   expect_false(id_integrity(ds_dup))
 })
 
 test_that("dataset_valid stops on duplicates", {
-  df_dup <- data.frame(id1 = c(1,1), variable = c("a","b"), val = 10:11, stringsAsFactors = FALSE)
-  ds_dup <- set_attr(df_dup, c("id1","variable"), "variable", "wide", TRUE)
-  expect_error(dataset_valid(ds_dup),
-               "ids do not uniquely identify rows")
+  df_dup <- data.frame(
+    id1 = c(1, 1),
+    variable = c("a", "b"),
+    val = 10:11,
+    stringsAsFactors = FALSE
+  )
+  ds_dup <- set_attr(df_dup, c("id1", "variable"), "variable", "wide", TRUE)
+  expect_error(dataset_valid(ds_dup), "ids do not uniquely identify rows")
 })
 
 test_that("dataset_valid stops on invalid state", {
   df <- data.frame(id1 = 1, variable = "x", val = 10, stringsAsFactors = FALSE)
-  ds <- set_attr(df, c("id1","variable"), "variable", "invalid_state")
-  expect_error(dataset_valid(ds),
-               "error invalid state: invalid_state")
+  ds <- set_attr(df, c("id1", "variable"), "variable", "invalid_state")
+  expect_error(dataset_valid(ds), "error invalid state: invalid_state")
 })
 
 test_that("print.dataset output contains expected text", {
