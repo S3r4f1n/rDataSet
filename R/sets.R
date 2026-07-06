@@ -67,12 +67,12 @@ val_cols <- function(dataset) {
 
 empty_rows <- function(dataset) {
   valc <- val_cols(dataset)
-  rowSums(is.na(dataset[valc])) > 0
+  rowSums(!is.na(dataset[valc])) == 0
 }
 
 empty_cols <- function(dataset) {
   valc <- val_cols(dataset)
-  cols <- colSums(is.na(dataset[valc])) > 0
+  cols <- colSums(!is.na(dataset[valc])) == 0
   c(rep(FALSE, length(id_cols(dataset))), cols) # asumes ids come always first
 }
 
@@ -81,7 +81,8 @@ empty_ids <- function(dataset) {
 }
 
 dataset_collapse <- function(dataset) {
-  df <- dataset[!empty_rows(dataset), !empty_cols(dataset)]
+  df <- dataset[!empty_rows(dataset), ]
+  df <- df[, !empty_cols(df)]
   set_attr(df, ids(dataset), x_axis(dataset), state(dataset), bloated = FALSE)
 }
 

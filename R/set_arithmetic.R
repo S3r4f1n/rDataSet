@@ -1,5 +1,6 @@
 library(dplyr)
 
+
 #' Set Difference
 #'
 #' Returns values from dataset `a` that are not present in dataset `b`.
@@ -52,7 +53,7 @@ dataset_minus <- function(a, b) {
       value = if_else(
         is.na(value_dataset_b_ending),
         value_dataset_a_ending,
-        as.list(NA)
+        list(NA)
       )
     ) %>%
     select(-matches("_dataset_._ending$"))
@@ -115,7 +116,7 @@ dataset_intersect <- function(a, b) {
       value = if_else(
         !is.na(value_dataset_b_ending),
         value_dataset_a_ending,
-        as.list(NA)
+        list(NA)
       )
     ) %>%
     select(-matches("_dataset_._ending$"))
@@ -171,12 +172,24 @@ dataset_union <- function(a, b) {
   a_long <- to_long(a) %>% rename(value_dataset_a_ending = "value")
   b_long <- to_long(b) %>% rename(value_dataset_b_ending = "value")
 
-  merged <- full_join(a_long, b_long, by = ids, keep = FALSE)
+  merged <- full_join(a_long, b_long, by = id_a, keep = FALSE)
+
+  replace_nulls_with_na <- function(x) {
+    if (!is.list(x)) {
+      return(x)
+    }
+    # fast: only touches NULL elements
+    i <- which(lengths(x) == 0) # NULLs are length 0
+    if (length(i)) {
+      x[i] <- list(NA)
+    }
+    x
+  }
 
   out <- merged %>%
     mutate(
       value = if_else(
-        is.na(value_dataset_a_ending),
+        is.na(replace_nulls_with_na(value_dataset_a_ending)),
         value_dataset_b_ending,
         value_dataset_a_ending
       )

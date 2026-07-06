@@ -54,6 +54,7 @@ long_to_wide <- function(dataset, col = NULL) {
     tidyr::pivot_wider(
       names_from = all_of(x_axis),
       values_from = all_of(valc),
+      values_fill = list(NA)
     ) %>%
     mutate(across(
       -all_of(setdiff(ids, x_axis)),
