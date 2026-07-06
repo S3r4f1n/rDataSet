@@ -16,7 +16,7 @@ test_that("to_wide converts long to wide", {
   ds_wide <- build_wide("id", id = c("a", "b"), x = 1:2, y = 3:4)
   ds_long <- wide_to_long(ds_wide)
   expect_equal(state(ds_long), "long")
-  
+
   back <- to_wide(ds_long, x_axis = "variable")
   expect_equal(state(back), "wide")
   expect_true(dataset_equality(back, ds_wide))
@@ -25,7 +25,7 @@ test_that("to_wide converts long to wide", {
 test_that("to_wide converts decomposed to wide", {
   ds_wide <- build_wide("id", id = 1:2, x = 1:2, y = 3:4)
   ds_decomp <- dataset_decompose(ds_wide, strategy = hirarchical_paths)
-  
+
   back <- to_wide(ds_decomp)
   expect_equal(state(back), "wide")
   expect_true(dataset_equality(back, ds_wide))
@@ -46,7 +46,7 @@ test_that("to_long converts wide to long", {
 test_that("to_long converts decomposed to long", {
   ds_wide <- build_wide("id", id = 1:2, a = 1:2)
   ds_decomp <- dataset_decompose(ds_wide, strategy = hirarchical_paths)
-  
+
   ds_long <- to_long(ds_decomp)
   expect_equal(state(ds_long), "long")
 })
@@ -54,13 +54,19 @@ test_that("to_long converts decomposed to long", {
 test_that("to_decomposed preserves decomposed datasets", {
   ds_wide <- build_wide("id", id = 1:2, a = 1:2)
   ds_decomp <- dataset_decompose(ds_wide, strategy = hirarchical_paths)
-  expect_equal(to_decomposed(ds_decomp, strategy = hirarchical_paths), ds_decomp)
+  expect_equal(
+    to_decomposed(ds_decomp, strategy = hirarchical_paths),
+    ds_decomp
+  )
 })
 
 test_that("to_decomposed converts wide to decomposed", {
   ds_wide <- build_wide("id", id = 1:2, a = 1:2)
   ds_decomp <- to_decomposed(ds_wide, strategy = hirarchical_paths)
-  expect_equal(ds_decomp, dataset_decompose(ds_wide, strategy = hirarchical_paths))
+  expect_equal(
+    ds_decomp,
+    dataset_decompose(ds_wide, strategy = hirarchical_paths)
+  )
 })
 
 test_that("to_decomposed converts long to decomposed", {
