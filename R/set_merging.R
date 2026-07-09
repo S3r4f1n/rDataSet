@@ -2,7 +2,7 @@
 # versions of this
 require(dplyr)
 
-merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func) {
+merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func, default_value = NA) {
   if (!is.null(strict_func)) {
     ids_a <- ids(a)
     ids_b <- ids(b)
@@ -123,5 +123,76 @@ merge_by <- function(
     merge_func = merge_func,
     filter_func = filter_func,
     strict_func = strict_func
+  )
+}
+
+#' Combine datasets with custom merge function
+combine_datasets <- function(a, b, merge_func, join_type = "full") {
+  join_func <- switch(join_type,
+    "inner" = inner_join,
+    "left" = left_join,
+    "right" = right_join,
+    "full" = full_join,
+    full_join
+  )
+  
+  merg_helper(
+    a,
+    b,
+    join_func = join_func,
+    merge_func = merge_func,
+    filter_func = function(ds) ds,
+    strict_func = NULL
+  )
+}
+
+#' Merge datasets with average of values
+mean_merge <- function(a, b) {
+  merg_helper(
+    a,
+    b,
+    join_func = full_join,
+    merge_func = function(a, b) {
+      if (is.na(a) && is.na(b)) return(NA)
+      if (is.na(a)) return(b)
+      if (is.na(b)) return(a)
+      (a + b) / 2
+    },
+    filter_func = function(ds) ds,
+    strict_func = NULL
+  )
+}
+
+#' Merge datasets with maximum of values
+max_merge <- function(a, b) {
+  merg_helper(
+    a,
+    b,
+    join_func = full_join,
+    merge_func = function(a, b) {
+      if (is.na(a) && is.na(b)) return(NA)
+      if (is.na(a)) return(b)
+      if (is.na(b)) return(a)
+      pmax(a, b)
+    },
+    filter_func = function(ds) ds,
+    strict_func = NULL
+  )
+}
+
+#' Merge datasets with minimum of values
+min_merge <- function(a, b) {
+  merg_helper(
+    a,
+    b,
+    join_func = full_join,
+    merge_func = function(a, b) {
+      if (is.na(a) && is.na(b)) return(NA)
+      if (is.na(a)) return(b)
+      if (is.na(b)) return(a)
+      pmin(a, b)
+    },
+    filter_func = function(ds) ds,
+    strict_func = NULL
   )
 }
