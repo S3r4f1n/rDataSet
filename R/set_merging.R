@@ -39,7 +39,10 @@ mask_with <- function(a, b) {
     filter_func = function(ds) ds,
     strict_func = function(add_a, add_b) {
       if (length(add_b) > 0) {
-        stop(paste0("right can't have additional ids. has: ", paste(add_b, collapse = ", ")))
+        stop(paste0(
+          "right can't have additional ids. has: ",
+          paste(add_b, collapse = ", ")
+        ))
       }
     }
   )
@@ -55,7 +58,10 @@ fill_with <- function(a, b) {
     filter_func = function(ds) ds,
     strict_func = function(add_a, add_b) {
       if (length(add_b) > 0) {
-        stop(paste0("right can't have additional ids. has: ", paste(add_b, collapse = ", ")))
+        stop(paste0(
+          "right can't have additional ids. has: ",
+          paste(add_b, collapse = ", ")
+        ))
       }
     }
   )
