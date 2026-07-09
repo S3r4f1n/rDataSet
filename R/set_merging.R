@@ -1,6 +1,7 @@
 # this is a hollow helper, and other functions in here are more specific
 # versions of this
 require(dplyr)
+
 merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func) {
   if (!is.null(strict_func)) {
     ids_a <- ids(a)
@@ -10,17 +11,17 @@ merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func) {
     strict_func(add_a, add_b)
   }
 
-  long_a <- to_long(a) |> rename(left_super_long_unlikely_name = "value")
-  long_b <- to_long(b) |> rename(right_super_long_unlikely_name = "value")
+  long_a <- to_long(a) |> rename(left_value = "value")
+  long_b <- to_long(b) |> rename(right_value = "value")
 
   out <- join_func(long_a, long_b) %>% # we need dplyr pipe here
     mutate(
       value = merge_func(
-        left_super_long_unlikely_name,
-        right_super_long_unlikely_name
+        left_value,
+        right_value
       )
     ) |>
-    select(-matches("_super_long_unlikely_name$")) |>
+    select(-matches("_value$")) |>
     filter_func()
 
   out |>
@@ -28,7 +29,7 @@ merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func) {
     dataset_transfrom(state(a), x_axis(a))
 }
 
-#' mask
+#' mask - replace values in 'a' with values from 'b' where 'b' has values
 mask_with <- function(a, b) {
   merg_helper(
     a,
@@ -38,13 +39,13 @@ mask_with <- function(a, b) {
     filter_func = function(ds) ds,
     strict_func = function(add_a, add_b) {
       if (length(add_b) > 0) {
-        stop(paste0("right can't have aditional ids. has: ", add_b))
+        stop(paste0("right can't have additional ids. has: ", paste(add_b, collapse = ", ")))
       }
     }
   )
 }
 
-#' fill
+#' fill - fill missing values in 'a' with values from 'b'
 fill_with <- function(a, b) {
   merg_helper(
     a,
@@ -54,7 +55,7 @@ fill_with <- function(a, b) {
     filter_func = function(ds) ds,
     strict_func = function(add_a, add_b) {
       if (length(add_b) > 0) {
-        stop(paste0("right can't have aditional ids. has: ", add_b))
+        stop(paste0("right can't have additional ids. has: ", paste(add_b, collapse = ", ")))
       }
     }
   )
@@ -77,12 +78,12 @@ merge_by <- function(
 ) {
   strict_func <- if (strict) {
     function(add_a, add_b) {
-      if (length(a) > 0 || length(b) > 0) {
+      if (length(add_a) > 0 || length(add_b) > 0) {
         stop(paste0(
-          "ids missmatch:\nadditional a: ",
-          add_a,
+          "ids mismatch:\nadditional a: ",
+          paste(add_a, collapse = ", "),
           "\nadditional b: ",
-          add_b
+          paste(add_b, collapse = ", ")
         ))
       }
     }
