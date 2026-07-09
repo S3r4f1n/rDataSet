@@ -2,48 +2,50 @@
 # for difference
 
 library(dplyr)
+#
 dataset_diff <- function(a, b) {
-  dataset_integrity(a)
-  dataset_integrity(b)
+  suppressWarnings(if (a == b) return(NULL))
 
-  suppressWarnings(if(a == b) return(NULL))
+  long_a <- to_long(a) %>% rename(left = value)
+  long_b <- to_long(b) %>% rename(right = value)
 
-  long_a <- dataset_to_long(a) %>% rename(left = value)
-  long_b <- dataset_to_long(b) %>% rename(right = value)
-
-  int <- full_join(long_a, long_b, by = intersect(names(long_a), names(long_b)), keep = FALSE)
+  int <- full_join(
+    long_a,
+    long_b,
+    by = intersect(names(long_a), names(long_b)),
+    keep = FALSE
+  )
   diff <- int %>%
     filter(xor(is.na(left), is.na(right)) | left != right)
 
   diff
 }
 
-
-#' Filter Dataset by Logical Conditions on Values
-#'
-#' Filters a dataset based on logical conditions applied to its value columns.
-#' The dataset is temporarily converted to long format for filtering, then
-#' converted back to wide format.
-#'
-#' **Filtering Process:**
-#' - Converts the dataset from wide to long format (one row per cell)
-#' - Applies the provided filter conditions using dplyr semantics
-#' - Converts the filtered result back to wide format
-#'
-#' @param data A dataset to filter.
-#' @param ... Logical conditions for filtering (passed to `dplyr::filter()`).
-#'   Conditions can reference the `value` and `variable` columns available in
-#'   long format.
-#' @return A filtered dataset in wide format containing only rows that satisfy
-#'   the filter conditions.
-#' @details The filtering operates on individual cells (long format), not entire
-#'   rows. Use conditions that account for this cell-level operation.
-#' @keywords internal
-dataset_filter <- function(data, ...) {
+# this is most likely useless no?
+# i guess we can filter on all values and
+# retain ids
+ds_filter <- function(ds, ...) {
   dots <- enquos(...)
 
-  long <- dataset_to_long(data)
-  filtered <- filter(long, !!!dots)
-  wide <- dataset_to_wide(filtered)
-  dataset_collapse(wide)
+  long <- to_long(ds)
+  filtered <- filter(long, !!!dots) |>
+    set_attr(ids(ds), x_axis(ds), state(ds)) |>
+    dataset_collapse()
+  dataset_transfrom(filtered, state(ds), x_axis(ds))
 }
+
+#' use tidy select for tibble based selection of ids. only selection on ids is allowed
+#' all value cols which are functional dependent on the ids are retained.
+#' other value cols are dropped.
+ds_select <- function(ds, ..., strict = TRUE) {
+  dots <- enquos(...)
+  selection <- select(ds, !!!dots) |> names() # tidy selection
+  ids <- intersect(selection, id_cols(ds)) # make this a failing check instead of a fix if flag strict is set to true
+  decomp <- to_decomposed(ds, strategy = selected_paths_builder(ids))
+  selected <- dataset_get_composed(decomp, 1)
+  dataset_transfrom(selected, state(ds))
+}
+
+# analougus to summarise?
+# @todo
+ds_summarise <- function(ds, ..., by) {}
