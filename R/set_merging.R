@@ -2,7 +2,17 @@
 # versions of this
 require(dplyr)
 
-merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func, default_value = NA) {
+# @todo test suite
+
+merg_helper <- function(
+  a,
+  b,
+  join_func,
+  merge_func,
+  filter_func,
+  strict_func,
+  default_value = NA
+) {
   if (!is.null(strict_func)) {
     ids_a <- ids(a)
     ids_b <- ids(b)
@@ -11,21 +21,33 @@ merg_helper <- function(a, b, join_func, merge_func, filter_func, strict_func, d
     strict_func(add_a, add_b)
   }
 
-  long_a <- to_long(a) |> rename(left_value = "value")
-  long_b <- to_long(b) |> rename(right_value = "value")
+  long_a <- to_long(a) |> rename(left_dataset_super_long_name_value = "value")
+  long_b <- to_long(b) |> rename(right_dataset_super_long_name_value = "value")
+
+  replace_nulls_with_na <- function(x) {
+    if (!is.list(x)) {
+      return(x)
+    }
+    # fast: only touches NULL elements
+    i <- which(lengths(x) == 0) # NULLs are length 0
+    if (length(i)) {
+      x[i] <- list(NA)
+    }
+    x
+  }
 
   out <- join_func(long_a, long_b) %>% # we need dplyr pipe here
     mutate(
       value = merge_func(
-        left_value,
-        right_value
+        replace_nulls_with_na(left_dataset_super_long_name_value),
+        replace_nulls_with_na(right_dataset_super_long_name_value)
       )
     ) |>
-    select(-matches("_value$")) |>
+    select(-matches("_dataset_super_long_name_value$")) |>
     filter_func()
 
   out |>
-    set_attr(names(out), NULL, "long") |>
+    set_attr(setdiff(names(out), "value"), NULL, "long") |>
     dataset_transfrom(state(a), x_axis(a))
 }
 
@@ -68,6 +90,7 @@ fill_with <- function(a, b) {
 }
 
 #' merge with some options
+#' @todo work on the verbs here
 merge_by <- function(
   a,
   b,
@@ -103,7 +126,7 @@ merge_by <- function(
     function(ds) ds
   }
 
-  mode <- match.arg(mode[[1]])
+  mode <- mode[[1]]
   merge_func <- switch(
     mode,
     union_right = function(a, b) if_else(is.na(b), a, b),
@@ -127,72 +150,34 @@ merge_by <- function(
 }
 
 #' Combine datasets with custom merge function
-combine_datasets <- function(a, b, merge_func, join_type = "full") {
-  join_func <- switch(join_type,
-    "inner" = inner_join,
-    "left" = left_join,
-    "right" = right_join,
-    "full" = full_join,
-    full_join
-  )
-  
+combine_datasets <- function(a, b, merge_func, collapse = TRUE, strict = TRUE) {
+  strict_func <- if (strict) {
+    function(add_a, add_b) {
+      if (length(add_a) > 0 || length(add_b) > 0) {
+        stop(paste0(
+          "ids mismatch:\nadditional a: ",
+          paste(add_a, collapse = ", "),
+          "\nadditional b: ",
+          paste(add_b, collapse = ", ")
+        ))
+      }
+    }
+  } else {
+    NULL
+  }
+
+  filter_func <- if (collapse) {
+    function(ds) filter(ds, is.na(ds$value))
+  } else {
+    function(ds) ds
+  }
+
   merg_helper(
     a,
     b,
-    join_func = join_func,
+    join_func = full_join,
     merge_func = merge_func,
-    filter_func = function(ds) ds,
-    strict_func = NULL
-  )
-}
-
-#' Merge datasets with average of values
-mean_merge <- function(a, b) {
-  merg_helper(
-    a,
-    b,
-    join_func = full_join,
-    merge_func = function(a, b) {
-      if (is.na(a) && is.na(b)) return(NA)
-      if (is.na(a)) return(b)
-      if (is.na(b)) return(a)
-      (a + b) / 2
-    },
-    filter_func = function(ds) ds,
-    strict_func = NULL
-  )
-}
-
-#' Merge datasets with maximum of values
-max_merge <- function(a, b) {
-  merg_helper(
-    a,
-    b,
-    join_func = full_join,
-    merge_func = function(a, b) {
-      if (is.na(a) && is.na(b)) return(NA)
-      if (is.na(a)) return(b)
-      if (is.na(b)) return(a)
-      pmax(a, b)
-    },
-    filter_func = function(ds) ds,
-    strict_func = NULL
-  )
-}
-
-#' Merge datasets with minimum of values
-min_merge <- function(a, b) {
-  merg_helper(
-    a,
-    b,
-    join_func = full_join,
-    merge_func = function(a, b) {
-      if (is.na(a) && is.na(b)) return(NA)
-      if (is.na(a)) return(b)
-      if (is.na(b)) return(a)
-      pmin(a, b)
-    },
-    filter_func = function(ds) ds,
-    strict_func = NULL
+    filter_func = filter_func,
+    strict_func = strict_func
   )
 }

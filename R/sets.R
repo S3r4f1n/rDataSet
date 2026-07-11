@@ -76,9 +76,6 @@ empty_cols <- function(dataset) {
   c(rep(FALSE, length(id_cols(dataset))), cols) # asumes ids come always first
 }
 
-empty_ids <- function(dataset) {
-  # @todo actually complicated algo
-}
 
 dataset_collapse <- function(dataset) {
   df <- dataset[!empty_rows(dataset), ]

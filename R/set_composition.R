@@ -87,6 +87,18 @@ df_functional_dependence <- function(v, df) {
   purrr::map(df, preloaded_functional_dependence) |> as.logical()
 }
 
+dataset_get_composed <- function(ds, index) {
+  state <- state(ds)
+  if (state != "decomposed") {
+    stop(paste0("State should be decomposed! state: ", state))
+  }
+  if (index < 1 || index > length(ds)) {
+    stop(paste0("Index should be in 1:", length(ds), "! index: ", index))
+  }
+  out <- ds[[index]]
+  ids <- c(intersect(names(out), ids(ds)), x_axis(ds))
+  set_attr(out, ids, x_axis(ds), "wide")
+}
 
 # strategy hirarchical / in order of ids
 hirarchical_paths <- function(dataset) {
@@ -119,4 +131,21 @@ efficient_paths <- function(dataset) {
     ) %>%
     arrange(n_distinct, n_ids) %>%
     select(ids = id_plan, paths = id_paths)
+}
+
+# ok this is a functional mess but works
+# first add ids, and then you get a function
+# which expects dataset selected_paths_builder(ids)(dataset)
+selected_paths_builder <- function(ids) {
+  function(dataset) {
+    idc <- id_cols(dataset)
+
+    id_plan <- list(intersect(ids, idc), setdiff(idc, ids), idc)
+    id_paths <- purrr::map(
+      id_plan,
+      ~ purrr::reduce(dataset %>% select(all_of(.x)), paste0)
+    )
+
+    tibble(ids = id_plan, paths = id_paths)
+  }
 }

@@ -45,7 +45,10 @@ long_to_wide <- function(dataset, col = NULL) {
 
   if (length(valc) != 1) {
     stop(
-      "a data set in long form is expected to only have one, vals column"
+      paste0(
+        "a data set in long form is expected to only have one, vals column but hast: ",
+        paste(valc, collapse = ",")
+      )
     )
   }
 

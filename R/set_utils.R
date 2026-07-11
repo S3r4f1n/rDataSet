@@ -1,8 +1,12 @@
 # Utility functions for dataset operations
 library(dplyr)
 
+# @todo test suite
+#
 dataset_diff <- function(a, b) {
-  if (identical(a, b)) return(NULL)
+  if (identical(a, b)) {
+    return(NULL)
+  }
   long_a <- to_long(a) %>% rename(left = value)
   long_b <- to_long(b) %>% rename(right = value)
 
@@ -28,45 +32,11 @@ ds_filter <- function(ds, ...) {
 }
 
 #' tidy select for ID columns only. if strict, error when non-ID columns selected
-ds_select <- function(ds, ..., strict = TRUE) {
+select_ids <- function(ds, ...) {
   dots <- enquos(...)
-  selection <- select(ds, !!!dots) |> names()
-  ids <- intersect(selection, id_cols(ds))
+  ids <- select(select(ds, all_of(id_cols(ds))), !!!dots) |> names()
 
-  if (strict && !all(selection %in% id_cols(ds))) {
-    stop("Only ID columns can be selected when strict = TRUE")
-  }
   decomp <- to_decomposed(ds, strategy = selected_paths_builder(ids))
   selected <- dataset_get_composed(decomp, 1)
   dataset_transfrom(selected, state(ds))
-}
-
-#' summarise by groups, analogous to dplyr::summarise
-ds_summarise <- function(ds, ..., by) {
-  if (missing(by) || length(by) == 0) {
-    stop("`by` must be a character vector specifying grouping columns")
-  }
-  idc <- id_cols(ds)
-  if (!all(by %in% idc)) {
-    stop("`by` must be a subset of the dataset's ID columns")
-  }
-
-  long <- to_long(ds)
-  grouped <- dplyr::group_by(long, dplyr::across(dplyr::all_of(by)), variable)
-
-  summarised <- dplyr::summarise(grouped, ..., .groups = "drop")
-
-  summary_cols <- base::setdiff(names(summarised), c(by, "variable"))
-  if (length(summary_cols) == 0) {
-    stop("`...` must produce at least one summary column")
-  }
-
-  wide <- tidyr::pivot_wider(
-    summarised,
-    id_cols = dplyr::all_of(by),
-    names_from  = variable,
-    values_from = dplyr::all_of(summary_cols)
-  )
-
-  dataset_build(wide, by)
 }
