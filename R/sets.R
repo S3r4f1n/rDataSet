@@ -88,6 +88,19 @@ id_integrity <- function(dataset) {
   !any(duplicated(dataset[idc]))
 }
 
+compare_ids <- function(a, b) {
+  m <- function(a) if (a > 0) "more" else "zero"
+  m_a <- setdiff(a, b) |> length() |> m()
+  m_b <- setdiff(b, a) |> length() |> m()
+  switch(
+    paste0(m_a, m_b),
+    more_more = "missmatch",
+    more_zero = "greater",
+    zero_more = "less",
+    zero_zero = "equal",
+  )
+}
+
 dataset_valid <- function(ds) {
   state <- state(ds)
   if (!state %in% c("wide", "long", "decomposed")) {
