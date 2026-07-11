@@ -23,33 +23,23 @@ rDataSet is introduces a new S3 style dataset object. A dataset is nothing else 
 i have the fear that this actually just could be a join with some merge function. and that all the other blabber is for nothing. well i still think that masking is a nice feature. and dropping ids seems realy cool. but we might actually reduce the whole thing to a ids_by functions similar to group by?
 well i still have some nice features which i want to cover. maybe this fear hints at the possibilty to include the ids into the function like, mask_with(a,b,ids=...) which would make the step of creating the datasets obsolete in the first place.
 
-- writing datasets as readable text files. (maybe its own project)
+- writing datasets as readable text files. (maybe its own project -> its own project)
 - having piped data control e.g. through hashing (identity), or less restrictiv messures, e.g. through a mask with catch all behaviour. (certainly its own project)
 so what are the goals until we say this is complete. I think we have discoverd some fancy transformations the long, wide and decomposed data formats. I'm afraid that these are too low level to every be used in a daily case. But we can build some usefull functions on top of them like, mask_with, and select_ids(). It might also be more than helpfull for text representations. 
 
 In application this might look like this:
 ```R
 # our original dataset containing our animals and some mistakes
-dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", "house")) %>%
+dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", NA), vals2 = c("animal", "animal", "other", "other")) %>%
   dataset_build(ids = c("id", "id2"))
 
 # in fact we have to cats. instead of recoding directly in the data we create a patch
-patch <- tibble(id = 3:4, vals = c("cat", "cat")) %>%
-  dataset_build(ids = c("id", "id2"))
+patch <- tibble(id2 = 2:3, vals = c("cat", "dog")) %>%
+  dataset_build(ids = c("id2"))
 
 # and mask the wrong data with the patch
 dataset %>%
   mask_with(patch)
-
-# if we want a set diff we do
-# @todo improve merge_by wording
-dataset %>%
-  merge_with(patch, "xor")
-```
-
-```R
-dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", "house"), vals2 = c("animal", "animal", "other", "other")) %>%
-  dataset_build(ids = c("id", "id2"))
 
 # another fancy thing is to drop id columns
 # only value columns which are functionaly dependent on the
@@ -57,6 +47,24 @@ dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", "
 dataset %>%
   select_ids(-id) # tidy select on ids
 
+dataset %>%
+  dataset_flatten()
+```
+
+```R
+# we can merge two datasets with a set operation and specifing a precedence
+# empty values are dropped by default.
+dataset %>%
+  merge_with(patch, set_op = "setdiff", prec = "left")
+
+dataset %>%
+  merge_with(patch, set_op = "left", prec = "right")
+
+dataset %>%
+  merge_with(patch, set_op = "intersect", prec = "left", keep = TRUE)
+
+dataset %>%
+  merge_with(patch, set_op = "union", prec = "left")
 ```
 
 ## Installation
@@ -71,7 +79,11 @@ install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 
 ## Set Operations
 
-Set Operations look real cool but I'm pivoting away from using operators like `+` as documentation of these functions is hard and it is impossible to set any flags. Similar goals can be achieved with pipe style opperations like `|> mask_with()` which is more readable allows for altering behaviour through flags and can be documented.
+Set Operations look real cool but I'm pivoting away from using operators like `+` as documentation of these functions is hard and it is impossible to set any flags. Similar goals can be achieved with pipe style opperations like `|> mask_with()` which is more readable allows for altering behaviour through flags and can be documented. All functionalities from below are captured in `merge_with` with the apropriate flags.
+
+- `+` `merge_with(a,b, set_op = "union", "left")`
+- `-` `merge_with(a,b, set_op = "setdiff", "left")`
+- `>` `merge_with(a,b, set_op = "intersect", "left")`
 
 Each set operation works in two stages:
 

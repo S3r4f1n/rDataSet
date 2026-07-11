@@ -38,10 +38,10 @@ intersect_with <- function(a, b) {
   merge_with(
     a,
     b,
-    set_operation = "right",
-    precedence = "left",
+    set_op = "right",
+    prec = "left",
     strict = c("equal", "greater"),
-    keep = TRUE
+    keep = FALSE
   )
 }
 
@@ -51,10 +51,9 @@ mask_with <- function(a, b, framed = TRUE) {
   merged <- merge_with(
     a,
     b,
-    set_operation = "or",
-    precedence = "left",
+    set_op = "union",
+    prec = "right",
     strict = c("equal", "greater"),
-    keep = TRUE
   )
 
   if (framed) {
@@ -68,12 +67,12 @@ mask_with <- function(a, b, framed = TRUE) {
 #' fill - fill missing values in a with values from b
 #' @export
 fill_with <- function(a, b, framed = TRUE) {
-  merged <- merg_helper(
+  merged <- merge_with(
     a,
     b,
-    merge_func = merge_func(op = "or", prc = "left"),
+    set_op = "union",
+    prec = "left",
     strict = c("equal", "greater"),
-    keep = TRUE
   )
 
   if (framed) {

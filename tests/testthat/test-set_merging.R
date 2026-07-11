@@ -75,14 +75,14 @@ test_that("combine_datasets respects strict = greater", {
 })
 
 # ---------- merge_func --------------------------------------------------------
-test_that("merge_func left operation with left precedence", {
+test_that("merge_func left operation with left prec", {
   f <- merge_func("left", "left")
   a <- c(1, NA, 2)
   b <- c(NA, 5, 6)
   expect_equal(f(a, b), c(1, NA, 2))
 })
 
-test_that("merge_func right operation with right precedence", {
+test_that("merge_func right operation with right prec", {
   f <- merge_func("right", "right")
   a <- c(NA, 2, NA)
   b <- c(3, 4, 5)
@@ -91,16 +91,16 @@ test_that("merge_func right operation with right precedence", {
   expect_equal(f(a, b), c(3, 4, 5))
 })
 
-test_that("merge_func diff operation with left precedence", {
-  f <- merge_func("diff", "left")
+test_that("merge_func diff operation with left prec", {
+  f <- merge_func("setdiff", "left")
   a <- c(1, NA, 2, 3)
   b <- c(NA, 5, NA, 7)
   # diff: !is.na(a) & is.na(b) -> take prec_fn (left: if_else(is.na(a), b, a))
   expect_equal(f(a, b), c(1, NA, 2, NA))
 })
 
-test_that("merge_func xor operation with right precedence", {
-  f <- merge_func("xor", "right")
+test_that("merge_func xor operation with right prec", {
+  f <- merge_func("symdiff", "right")
   a <- c(1, NA, 2, NA)
   b <- c(NA, 5, 6, NA)
   # xor: exactly one present
@@ -108,8 +108,8 @@ test_that("merge_func xor operation with right precedence", {
   expect_equal(f(a, b), c(1, 5, NA, NA))
 })
 
-test_that("merge_func and operation with left precedence", {
-  f <- merge_func("and", "left")
+test_that("merge_func and operation with left prec", {
+  f <- merge_func("intersect", "left")
   a <- c(1, NA, 2, 3)
   b <- c(4, 5, NA, 7)
   # and: both present
@@ -117,8 +117,8 @@ test_that("merge_func and operation with left precedence", {
   expect_equal(f(a, b), c(1, NA, NA, 3))
 })
 
-test_that("merge_func or operation with right precedence", {
-  f <- merge_func("or", "right")
+test_that("merge_func or operation with right prec", {
+  f <- merge_func("union", "right")
   a <- c(NA, NA, 2, 3)
   b <- c(4, NA, 6, NA)
   # or: at least one present
@@ -152,7 +152,7 @@ test_that("merg_helper returns a dataset in original state", {
   out_df <- as.data.frame(out)
   expect_equal(sort(out_df$id), c(1, 2))
   # for id=1, variable values should come from a (b has no row for id=1)
-  # for id=2, left precedence gives a's values
+  # for id=2, left prec gives a's values
   expect_equal(
     out_df %>% filter(id == 1),
     a %>% filter(id == 1) %>% as.data.frame()
@@ -185,7 +185,7 @@ test_that("mask_with replaces values where b has values", {
   out <- mask_with(a, b)
   out_df <- as.data.frame(out)
   # id=1: b has value -> replaced by b; id=2: b has value -> replaced; id=3: b NA -> keep original
-  expect_equal(out_df %>% arrange(id) %>% pull(x), c(1, NA, 30))
+  expect_equal(out_df %>% arrange(id) %>% pull(x), c(1, 2, 30))
 })
 
 test_that("mask_with allows b to have additional ids (strict = greater)", {
@@ -211,15 +211,15 @@ test_that("fill_with fills missing values in a from b", {
 })
 
 # ---------- merge_with --------------------------------------------------------
-test_that("merge_with works with left set operation and left precedence", {
+test_that("merge_with works with left set operation and left prec", {
   a <- dataset_build(tibble(id = 1:2, x = c(100, 200)), "id")
   b <- dataset_build(tibble(id = 2:3, x = c(5, 7)), "id")
 
   out <- merge_with(
     a,
     b,
-    set_operation = "left",
-    precedence = "left",
+    set_op = "left",
+    prec = "left",
     strict = "equal",
     keep = TRUE
   )
@@ -236,14 +236,14 @@ test_that("merge_with works with left set operation and left precedence", {
   )
 })
 
-test_that("merge_with diff operation with right precedence", {
+test_that("merge_with diff operation with right prec", {
   a <- dataset_build(tibble(id = 1:3, x = c(1, NA, 3)), "id")
   b <- dataset_build(tibble(id = 1:3, x = c(NA, 2, NA)), "id")
   out <- merge_with(
     a,
     b,
-    set_operation = "diff",
-    precedence = "right",
+    set_op = "setdiff",
+    prec = "right",
     strict = "equal",
     keep = TRUE
   )
@@ -255,14 +255,14 @@ test_that("merge_with diff operation with right precedence", {
   expect_equal(sort(out_df$id), c(1, 2, 3))
 })
 
-test_that("merge_with and operation with left precedence", {
+test_that("merge_with and operation with left prec", {
   a <- dataset_build(tibble(id = 1:3, x = c(1, 2, NA)), "id")
   b <- dataset_build(tibble(id = 1:3, x = c(4, NA, 6)), "id")
   out <- merge_with(
     a,
     b,
-    set_operation = "and",
-    precedence = "left",
+    set_op = "intersect",
+    prec = "left",
     strict = "equal",
     keep = FALSE
   )
@@ -272,20 +272,20 @@ test_that("merge_with and operation with left precedence", {
   expect_equal(out_df$x, 1)
 })
 
-test_that("merge_with or operation with right precedence", {
+test_that("merge_with or operation with right prec", {
   a <- dataset_build(tibble(id = 1:3, x = c(NA, 2, NA)), "id")
   b <- dataset_build(tibble(id = 1:3, x = c(4, NA, 6)), "id")
   out <- merge_with(
     a,
     b,
-    set_operation = "or",
-    precedence = "right",
+    set_op = "union",
+    prec = "right",
     strict = "equal",
     keep = TRUE
   )
   out_df <- as.data.frame(out)
   # or: at least one present -> all ids
   expect_equal(sort(out_df$id), 1:3)
-  # right precedence: id1: b=4, id2: a=2, id3: b=6
+  # right prec: id1: b=4, id2: a=2, id3: b=6
   expect_equal(out_df %>% arrange(id) %>% pull(x), c(4, 2, 6))
 })

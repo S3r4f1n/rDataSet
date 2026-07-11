@@ -1,9 +1,5 @@
 require(dplyr)
 
-# @todo fix exports, add testing for wide / long, compose / decompose.
-# @todo add some consolidating function in a xport.r ?
-# @todo whatever we do with the arithmetic operations
-# @todo whatever we do with serialize an deserialize (saving)
 
 # a dataset is a tibble with id cols
 #

@@ -73,7 +73,7 @@ combine_datasets <- function(
 #'
 #' @return A function `f(a, b)` that can be called inside `merg_helper`.
 merge_func <- function(
-  op = c("left", "right", "diff", "xor", "and", "or"),
+  op = c("left", "right", "setdiff", "symdiff", "intersect", "union"),
   prc = c("left", "right")
 ) {
   op <- match.arg(op)
@@ -89,10 +89,14 @@ merge_func <- function(
     op,
     left = function(a, b) if_else(!is.na(a), prec_fn(a, b), NA),
     right = function(a, b) if_else(!is.na(b), prec_fn(a, b), NA),
-    diff = function(a, b) if_else(!is.na(a) & is.na(b), prec_fn(a, b), NA),
-    xor = function(a, b) if_else(xor(is.na(a), is.na(b)), prec_fn(a, b), NA),
-    and = function(a, b) if_else(!is.na(a) & !is.na(b), prec_fn(a, b), NA),
-    or = function(a, b) if_else(!is.na(a) | !is.na(b), prec_fn(a, b), NA)
+    setdiff = function(a, b) if_else(!is.na(a) & is.na(b), prec_fn(a, b), NA),
+    symdiff = function(a, b) {
+      if_else(xor(is.na(a), is.na(b)), prec_fn(a, b), NA)
+    },
+    intersect = function(a, b) {
+      if_else(!is.na(a) & !is.na(b), prec_fn(a, b), NA)
+    },
+    union = function(a, b) if_else(!is.na(a) | !is.na(b), prec_fn(a, b), NA)
   )
 }
 
@@ -127,15 +131,15 @@ merg_helper <- function(
 merge_with <- function(
   a,
   b,
-  set_operation = c("left", "right", "diff", "xor", "and", "or"),
-  precedence = c("left", "right"),
+  set_op = c("left", "right", "setdiff", "symdiff", "intersect", "union"),
+  prec = c("left", "right"),
   strict = c("equal", "greater", "less"),
-  keep = TRUE
+  keep = FALSE
 ) {
   merg_helper(
     a,
     b,
-    merge_func = merge_func(set_operation, precedence),
+    merge_func = merge_func(set_op, prec),
     strict = strict,
     keep = keep
   )
