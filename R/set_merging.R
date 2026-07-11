@@ -34,9 +34,12 @@ combine_datasets <- function(
     stop(
       "ids should be one of: ",
       paste(strict, collapse = ", "),
-      " but is: ", cmp,
-      "\nids a: ", paste(ids(a), collapse = ", "),
-      "\nids b: ", paste(ids(b), collapse = ", ")
+      " but is: ",
+      cmp,
+      "\nids a: ",
+      paste(ids(a), collapse = ", "),
+      "\nids b: ",
+      paste(ids(b), collapse = ", ")
     )
   }
 
@@ -60,7 +63,7 @@ combine_datasets <- function(
 
   out <- full_join(long_a, long_b) |>
     mutate(
-      !!left_name  := replace_nulls_with_na(.data[[left_name]]),
+      !!left_name := replace_nulls_with_na(.data[[left_name]]),
       !!right_name := replace_nulls_with_na(.data[[right_name]])
     )
 
@@ -112,23 +115,25 @@ set_diff <- function(precedence) {
 #'
 #' @return A function `f(a, b)` that can be called inside `merg_helper`.
 merge_func <- function(
-    op   = c("left", "right", "diff", "xor", "and", "or"),
-    prc  = c("left", "right")) {
-
-  op  <- match.arg(op)
+  op = c("left", "right", "diff", "xor", "and", "or"),
+  prc = c("left", "right")
+) {
+  op <- match.arg(op)
   prc <- match.arg(prc)
 
-  prec_fn <- switch(prc,
-                    left  = left_pred,
-                    right = right_pred)
+  prec_fn <- switch(prc, left = left_pred, right = right_pred)
 
-  switch(op,
-         left  = set_left(prec_fn),
-         right = set_right(prec_fn),
-         diff  = set_diff(prec_fn),
-         xor   = set_xor(prec_fn),
-         and   = set_and(prec_fn),
-         or    = set_or(prec_fn))
+  set_op <- switch(
+    op,
+    left = set_left,
+    right = set_right,
+    diff = set_diff,
+    xor = set_xor,
+    and = set_and,
+    or = set_or
+  )
+
+  set_op(prec_fn)
 }
 
 # this is a hollow helper, and other functions in here are more specific
