@@ -250,11 +250,11 @@ dataset_equality <- function(a, b) {
   if (!setequal(val_a, val_b)) {
     warning(
       "value columns don't match:",
-      "\ncommon cols: ",
+      "\ncommon value cols: ",
       paste(intersect(val_a, val_b), collapse = ", "),
-      "\nextra cols in a: ",
+      "\nextra value cols in a: ",
       paste(setdiff(val_a, val_b), collapse = ", "),
-      "\nextra cols in b: ",
+      "\nextra value cols in b: ",
       paste(setdiff(val_b, val_a), collapse = ", ")
     )
     return(FALSE)

@@ -93,7 +93,7 @@ compare_ids <- function(a, b) {
   m_a <- setdiff(a, b) |> length() |> m()
   m_b <- setdiff(b, a) |> length() |> m()
   switch(
-    paste0(m_a, m_b),
+    paste0(m_a, "_", m_b),
     more_more = "missmatch",
     more_zero = "greater",
     zero_more = "less",

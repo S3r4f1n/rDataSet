@@ -392,7 +392,8 @@ test_that("dataset_equality works with missing columns", {
     ids = c("id1", "id2")
   )
 
-  expect_false(dataset_equality(a, b))
+  expect_warning(dataset_equality(a, b))
+  expect_false(suppressWarnings(dataset_equality(a, b)))
 })
 
 test_that("dataset_equality works with empty datasets", {
@@ -437,7 +438,8 @@ test_that("dataset_equality handles one empty dataset", {
     ids = c("id1", "id2")
   )
 
-  expect_false(dataset_equality(a, b))
+  expect_warning(dataset_equality(a, b))
+  expect_false(suppressWarnings(dataset_equality(a, b)))
 })
 
 test_that("dataset_equality errors on mismatched IDs", {

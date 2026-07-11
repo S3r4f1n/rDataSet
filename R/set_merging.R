@@ -1,16 +1,18 @@
-# some restriction on the ids, e,g reduce the set in its reach down to another.
-# ok this is a place where i get consistently confused. so it might be reasonable to write
-# a theretic work on this issue. but i'm pretty sure this is true. by restricting ids and
-# by using the conditionals on the merg function we do have all options of full join inner join and so on.
-# i think the actual helpful mind frameworkt is the set ven diagram, with intersectiona nd so on. and we actualy
-# get all the options when imagine the left right cols, we have only left, only right and intersection.
-#
-# idea for later, from the long format the set operations make a lot of snese. but in the wide format we might
-# want to get a frame, e.g. a set which coverst the whole x-y-dimesnion to such that we can do a union and then
-# reduce it back to the frame. like this we get a merge within the frae but beyond each of the sets.
-#
-# @todo test suite
+# after many attempts this seems to be an actually reasonable interface with merge_with and the
+# internal structur seems to be testable and reliable. small enough for testing big enough to achieve more.
 require(dplyr)
+
+# NULL list elements appear for missing rows in full_join -> replace with NA
+replace_nulls_with_na <- function(x) {
+  if (!is.list(x)) {
+    return(x)
+  }
+  i <- which(lengths(x) == 0)
+  if (length(i)) {
+    x[i] <- list(NA)
+  }
+  x
+}
 
 #' expects two datasets returns a dataset in long form with values from left and right
 #' in respective columns. Specify the out column names with left_name, and right_name.
@@ -49,26 +51,14 @@ combine_datasets <- function(
   long_b <- to_long(b) |>
     rename_with(\(x) right_name, all_of("value"))
 
-  # NULL list elements appear for missing rows in full_join -> replace with NA
-  replace_nulls_with_na <- function(x) {
-    if (!is.list(x)) {
-      return(x)
-    }
-    i <- which(lengths(x) == 0)
-    if (length(i)) {
-      x[i] <- list(NA)
-    }
-    x
-  }
-
-  out <- full_join(long_a, long_b) |>
+  out <- full_join(long_a, long_b, by = intersect(ids(a), ids(b))) |>
     mutate(
       !!left_name := replace_nulls_with_na(.data[[left_name]]),
       !!right_name := replace_nulls_with_na(.data[[right_name]])
     )
 
   # identify the column set that uniquely defines each row after the join
-  new_ids <- setdiff(names(out), c(left_name, right_name))
+  new_ids <- union(ids(a), ids(b))
 
   set_attr(out, new_ids, x_axis = NULL, state = "scuffed_long")
 }
@@ -89,18 +79,20 @@ merge_func <- function(
   op <- match.arg(op)
   prc <- match.arg(prc)
 
-  prec_fn <- switch(prc,
-    left  = function(a, b) if_else(is.na(a), b, a),
+  prec_fn <- switch(
+    prc,
+    left = function(a, b) if_else(is.na(a), b, a),
     right = function(a, b) if_else(is.na(b), a, b)
   )
 
-  switch(op,
-    left  = function(a, b) if_else(is.na(a), NA, prec_fn(a, b)),
-    right = function(a, b) if_else(is.na(b), NA, prec_fn(a, b)),
-    diff  = function(a, b) if_else(!is.na(a) & is.na(b), prec_fn(a, b), NA),
-    xor   = function(a, b) if_else(xor(is.na(a), is.na(b)), prec_fn(a, b), list(NA)),
-    and   = function(a, b) if_else(!is.na(a) & !is.na(b), prec_fn(a, b), NA),
-    or    = function(a, b) if_else(!is.na(a) | !is.na(b), prec_fn(a, b), NA)
+  switch(
+    op,
+    left = function(a, b) if_else(!is.na(a), prec_fn(a, b), NA),
+    right = function(a, b) if_else(!is.na(b), prec_fn(a, b), NA),
+    diff = function(a, b) if_else(!is.na(a) & is.na(b), prec_fn(a, b), NA),
+    xor = function(a, b) if_else(xor(is.na(a), is.na(b)), prec_fn(a, b), NA),
+    and = function(a, b) if_else(!is.na(a) & !is.na(b), prec_fn(a, b), NA),
+    or = function(a, b) if_else(!is.na(a) | !is.na(b), prec_fn(a, b), NA)
   )
 }
 
@@ -116,38 +108,18 @@ merg_helper <- function(
   right_name = "right_unlikely_long_name"
 ) {
   out <- combine_datasets(a, b, strict, left_name, right_name) |>
-    mutate(!!value := merge_func(.data[[left_name]], .data[[right_name]])) |>
+    mutate(value = merge_func(.data[[left_name]], .data[[right_name]])) |>
     select(-all_of(c(left_name, right_name)))
 
-  out <- if (keep) out else filter(out, !is.na(out$value))
+  out <- if (keep) {
+    mutate(out, value = replace_nulls_with_na(out$value))
+  } else {
+    filter(out, !is.na(replace_nulls_with_na(out$value)))
+  }
 
   out |>
     set_attr(setdiff(names(out), "value"), NULL, "long") |>
     dataset_transfrom(state(a), x_axis(a))
-}
-
-#' mask - replace values in a with values from b where b has values
-#' @export
-mask_with <- function(a, b) {
-  merg_helper(
-    a,
-    b,
-    merge_func = merge_func(op = "or", prc = "right"),
-    strict = c("equal", "greater"),
-    keep = TRUE
-  )
-}
-
-#' fill - fill missing values in a with values from b
-#' @export
-fill_with <- function(a, b) {
-  merg_helper(
-    a,
-    b,
-    merge_func = merge_func(op = "or", prc = "left"),
-    strict = c("equal", "greater"),
-    keep = TRUE
-  )
 }
 
 #' merge with some options

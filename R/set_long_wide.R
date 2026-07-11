@@ -67,3 +67,12 @@ long_to_wide <- function(dataset, col = NULL) {
   # setting metadata
   set_attr(wide, ids, x_axis, "wide")
 }
+
+# returns a dataset with all true values
+# used to get the "frame" of the wide format
+dataset_frame <- function(a) {
+  if (state(a) != "wide") {
+    stop(paste0("Dataset must be in wide format. is: ", state(a)))
+  }
+  a |> mutate(across(val_cols(a), \(x) TRUE))
+}
