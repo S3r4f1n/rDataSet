@@ -11,7 +11,6 @@
 #
 # @todo test suite
 require(dplyr)
-# ok this has been rewritten several times now. i hope this version is one to stay.
 
 #' expects two datasets returns a dataset in long form with values from left and right
 #' in respective columns. Specify the out column names with left_name, and right_name.
@@ -28,21 +27,26 @@ combine_datasets <- function(
   left_name = "left",
   right_name = "right"
 ) {
-  if (compare_sets(ids(a), ids(b)) %in% strict) {
-    stop(paste0(
+  # The compare_ids() helper returns strings like "equal", "greater", "less", "missmatch"
+  cmp <- compare_ids(ids(a), ids(b))
+
+  if (!(cmp %in% strict)) {
+    stop(
       "ids should be one of: ",
       paste(strict, collapse = ", "),
-      "but is: ",
-      compare_sets(ids(a), ids(b)),
-      "\nids a: ",
-      paste(ids(a), collapse = ", "),
-      "\nids b: ",
-      paste(ids(b), collapse = ", ")
-    ))
+      " but is: ", cmp,
+      "\nids a: ", paste(ids(a), collapse = ", "),
+      "\nids b: ", paste(ids(b), collapse = ", ")
+    )
   }
-  long_a <- to_long(a) |> rename_with(\(x) left_name, all_of("value"))
-  long_b <- to_long(b) |> rename_with(\(x) right_name, all_of("value"))
 
+  long_a <- to_long(a) |>
+    rename_with(\(x) left_name, all_of("value"))
+
+  long_b <- to_long(b) |>
+    rename_with(\(x) right_name, all_of("value"))
+
+  # NULL list elements appear for missing rows in full_join -> replace with NA
   replace_nulls_with_na <- function(x) {
     if (!is.list(x)) {
       return(x)
@@ -56,17 +60,21 @@ combine_datasets <- function(
 
   out <- full_join(long_a, long_b) |>
     mutate(
-      !!left_name := replace_nulls_with_na(.data[[left_name]]),
-      !!right_name := replace_nulls_with_na(.data[[right_name]]),
+      !!left_name  := replace_nulls_with_na(.data[[left_name]]),
+      !!right_name := replace_nulls_with_na(.data[[right_name]])
     )
 
-  set_attr(out, union(ids(a), ids(b)), NULL, "scuffed_long")
+  # identify the column set that uniquely defines each row after the join
+  new_ids <- setdiff(names(out), c(left_name, right_name))
+
+  set_attr(out, new_ids, x_axis = NULL, state = "scuffed_long")
 }
 
 # thiese are some small helpers, which really should make code more readable
 left_pred <- function(a, b) if_else(is.na(a), b, a)
 right_pred <- function(a, b) if_else(is.na(b), a, b)
 
+# Wrappers that enforce a “side” (left or right) and then apply a precedence function
 set_left <- function(precedence) {
   function(a, b) if_else(is.na(a), NA, precedence(a, b))
 }
@@ -94,20 +102,34 @@ set_diff <- function(precedence) {
   }
 }
 
-merge_func <- function(set_operation, precedence) {
-  pred <- switch(precedence, left = left_pred, right = right_pred)
-  setop <- switch(
-    set_operation,
-    left = set_left,
-    right = set_right,
-    or = set_or,
-    and = set_and,
-    xor = set_xor,
-    diff = set_diff
-  )
-  pred(setop)
-}
+#' Build a merging function that corresponds to the chosen set operation
+#' and precedence rule.
+#'
+#' @param op       set operation name, one of "left", "right", "diff",
+#'                 "xor", "and", "or".
+#' @param prc      precedence rule, either "left" (prefer left when both
+#'                 sides are present) or "right" (prefer right).
+#'
+#' @return A function `f(a, b)` that can be called inside `merg_helper`.
+merge_func <- function(
+    op   = c("left", "right", "diff", "xor", "and", "or"),
+    prc  = c("left", "right")) {
 
+  op  <- match.arg(op)
+  prc <- match.arg(prc)
+
+  prec_fn <- switch(prc,
+                    left  = left_pred,
+                    right = right_pred)
+
+  switch(op,
+         left  = set_left(prec_fn),
+         right = set_right(prec_fn),
+         diff  = set_diff(prec_fn),
+         xor   = set_xor(prec_fn),
+         and   = set_and(prec_fn),
+         or    = set_or(prec_fn))
+}
 
 # this is a hollow helper, and other functions in here are more specific
 # versions of this
@@ -137,9 +159,9 @@ mask_with <- function(a, b) {
   merg_helper(
     a,
     b,
-    merge_func = merge_func(set_operation = "left", precedence = "right"),
+    merge_func = right_pred,
     strict = c("equal", "greater"),
-    keep = TRUE,
+    keep = TRUE
   )
 }
 
@@ -149,9 +171,9 @@ fill_with <- function(a, b) {
   merg_helper(
     a,
     b,
-    merge_func = merge_func(set_operation = "left", precedence = "left"),
+    merge_func = left_pred,
     strict = c("equal", "greater"),
-    keep = TRUE,
+    keep = TRUE
   )
 }
 
