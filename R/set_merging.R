@@ -73,38 +73,6 @@ combine_datasets <- function(
   set_attr(out, new_ids, x_axis = NULL, state = "scuffed_long")
 }
 
-# thiese are some small helpers, which really should make code more readable
-left_pred <- function(a, b) if_else(is.na(a), b, a)
-right_pred <- function(a, b) if_else(is.na(b), a, b)
-
-# Wrappers that enforce a “side” (left or right) and then apply a precedence function
-set_left <- function(precedence) {
-  function(a, b) if_else(is.na(a), NA, precedence(a, b))
-}
-set_right <- function(precedence) {
-  function(a, b) if_else(is.na(b), NA, precedence(a, b))
-}
-set_or <- function(precedence) {
-  function(a, b) {
-    if_else(!is.na(a) | !is.na(b), precedence(a, b), NA)
-  }
-}
-set_xor <- function(precedence) {
-  function(a, b) {
-    if_else(xor(is.na(a), is.na(b)), precedence(a, b), list(NA))
-  }
-}
-set_and <- function(precedence) {
-  function(a, b) {
-    if_else(!is.na(a) & !is.na(b), precedence(a, b), list(NA))
-  }
-}
-set_diff <- function(precedence) {
-  function(a, b) {
-    if_else(!is.na(a) & is.na(b), precedence(a, b), list(NA))
-  }
-}
-
 #' Build a merging function that corresponds to the chosen set operation
 #' and precedence rule.
 #'
@@ -121,19 +89,19 @@ merge_func <- function(
   op <- match.arg(op)
   prc <- match.arg(prc)
 
-  prec_fn <- switch(prc, left = left_pred, right = right_pred)
-
-  set_op <- switch(
-    op,
-    left = set_left,
-    right = set_right,
-    diff = set_diff,
-    xor = set_xor,
-    and = set_and,
-    or = set_or
+  prec_fn <- switch(prc,
+    left  = function(a, b) if_else(is.na(a), b, a),
+    right = function(a, b) if_else(is.na(b), a, b)
   )
 
-  set_op(prec_fn)
+  switch(op,
+    left  = function(a, b) if_else(is.na(a), NA, prec_fn(a, b)),
+    right = function(a, b) if_else(is.na(b), NA, prec_fn(a, b)),
+    diff  = function(a, b) if_else(!is.na(a) & is.na(b), prec_fn(a, b), NA),
+    xor   = function(a, b) if_else(xor(is.na(a), is.na(b)), prec_fn(a, b), list(NA)),
+    and   = function(a, b) if_else(!is.na(a) & !is.na(b), prec_fn(a, b), NA),
+    or    = function(a, b) if_else(!is.na(a) | !is.na(b), prec_fn(a, b), NA)
+  )
 }
 
 # this is a hollow helper, and other functions in here are more specific
@@ -158,25 +126,25 @@ merg_helper <- function(
     dataset_transfrom(state(a), x_axis(a))
 }
 
-#' mask - replace values in 'a' with values from 'b' where 'b' has values
+#' mask - replace values in a with values from b where b has values
 #' @export
 mask_with <- function(a, b) {
   merg_helper(
     a,
     b,
-    merge_func = right_pred,
+    merge_func = merge_func(op = "or", prc = "right"),
     strict = c("equal", "greater"),
     keep = TRUE
   )
 }
 
-#' fill - fill missing values in 'a' with values from 'b'
+#' fill - fill missing values in a with values from b
 #' @export
 fill_with <- function(a, b) {
   merg_helper(
     a,
     b,
-    merge_func = left_pred,
+    merge_func = merge_func(op = "or", prc = "left"),
     strict = c("equal", "greater"),
     keep = TRUE
   )
