@@ -7,7 +7,7 @@ output: github_document
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>",
+  comment = "<$",
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
@@ -18,19 +18,46 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of rDataSet is to treat data frames as mathematical sets. It provides set-theoretic operations (union, intersection, difference, equality) for data frames where values are identified by row IDs and column names, and presence/absence is determined by `NA` values.
+rDataSet is introduces a new S3 style dataset object. A dataset is nothing else but a tibble with id columns. Where the id columns like in a relational database must uniqely define each row. But instead of following the path of relational databases. From here on the focus is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as an output. When merging we have three disticnt parts. The rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide wether we want to keep them in in the result. Further we have to decide for the intersection wether we take the values from left, from right or apply some other function to merge the two (maybe disallow this function thing as we never know what type of data we need to merge, left right is the only safe function?).
 
-Empty, rows and empty cols are dropped. More over, redundant id cols are dropped, meaning if all values are constant over an id. that id is dropped and the set is shrunk.
+i have the fear that this actually just could be a join with some merge function. and that all the other blabber is for nothing. well i still think that masking is a nice feature. and dropping ids seems realy cool. but we might actually reduce the whole thing to a ids_by functions similar to group by?
+well i still have some nice features which i want to cover. maybe this fear hints at the possibilty to include the ids into the function like, mask_with(a,b,ids=...) which would make the step of creating the datasets obsolete in the first place.
 
-When a dataset is in this reduced / restricted format, many operations become possible which wouldn't be reasonable without those restrictions.
+- writing datasets as readable text files. (maybe its own project)
+- having piped data control e.g. through hashing (identity), or less restrictiv messures, e.g. through a mask with catch all behaviour. (certainly its own project)
+so what are the goals until we say this is complete. I think we have discoverd some fancy transformations the long, wide and decomposed data formats. I'm afraid that these are too low level to every be used in a daily case. But we can build some usefull functions on top of them like, mask_with, and select_ids(). It might also be more than helpfull for text representations. 
 
-Mainly we can convert the Datasets between, wide (default), long, decomposed, flattened states. Where each represents a structure which is ideal for certain operations.
+In application this might look like this:
+```R
+# our original dataset containing our animals and some mistakes
+dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", "house")) %>%
+  dataset_build(ids = c("id", "id2"))
 
-- wide: is the standard, csv / excel view
-- long: is really neat for filtering and diff views.
-- decomposed: really neat to extract "metadata" from datasets. Data which strictly correlates with one id, instead of all.
-- flat: is usefull for serializing and storing data as text in a human readable way.
+# in fact we have to cats. instead of recoding directly in the data we create a patch
+patch <- tibble(id = 3:4, vals = c("cat", "cat")) %>%
+  dataset_build(ids = c("id", "id2"))
 
+# and mask the wrong data with the patch
+dataset %>%
+  mask_with(patch)
+
+# if we want a set diff we do
+# @todo improve merge_by wording
+dataset %>%
+  merge_with(patch, "xor")
+```
+
+```R
+dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", "house"), vals2 = c("animal", "animal", "other", "other")) %>%
+  dataset_build(ids = c("id", "id2"))
+
+# another fancy thing is to drop id columns
+# only value columns which are functionaly dependent on the
+# selected id cols will remain in the dataset.
+dataset %>%
+  select_ids(-id) # tidy select on ids
+
+```
 
 ## Installation
 
@@ -42,17 +69,9 @@ devtools::install("/path/to/rDataSet")
 install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 ```
 
-## Overview
-
-rDataSet introduces a `dataset` S3 class that extends data frames with designated ID columns. Set operations work on a cell-by-cell basis:
-
-- **ID columns** uniquely identify each row (one-to-one relation)
-- **Value presence** is determined by `is.na()` - a value is present if not `NA`
-- **Set operations** compare cells at the same (row_id, col_id) position
-- **Empty rows and cols are dropped** - rows and cols containing only `NA` values in all value columns are considered non-existent and are automatically removed during dataset construction
-- **Redundant Ids are dropped** - Ids which have no variance in their data are dropped. 
-
 ## Set Operations
+
+Set Operations look real cool but I'm pivoting away from using operators like `+` as documentation of these functions is hard and it is impossible to set any flags. Similar goals can be achieved with pipe style opperations like `|> mask_with()` which is more readable allows for altering behaviour through flags and can be documented.
 
 Each set operation works in two stages:
 

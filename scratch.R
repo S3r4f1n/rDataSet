@@ -8,6 +8,10 @@ ds <- dataset_build(
   ids = c("id", "code")
 )
 
+ds
+
+select_ids(ds, -id)
+
 dataset <- ds
 
 ds %>%
