@@ -110,22 +110,14 @@ dataset_valid <- function(ds) {
 
 # @export
 print.dataset <- function(x, ...) {
-  ids <- ids(x)
-  val_cols <- val_cols(x)
-  state <- state(x)
+  cat("Dataset - State: ", cli::col_blue(state(x)), ", IDs | Values\n")
 
-  cat("Dataset - State: ", state, ", IDs | Values\n")
-  
-  blue_ids <- cli::col_blue(paste(ids, collapse = ", "))
-  grey_vals <- cli::col_silver(paste(val_cols, collapse = ", "))
-  
-  cat(blue_ids, " | ", grey_vals, "\n\n")
+  idc <- cli::col_blue(paste(id_cols(x), collapse = ", "))
+  valc <- cli::col_green(paste(val_cols(x), collapse = ", "))
+  xaxi <- cli::col_red(paste(x_axis(x), collapse = ", "))
 
-  # Remove 'dataset' class temporarily to avoid infinite recursion 
-  # and call the next print method (usually tibble/tbl_df)
-  y <- x
-  class(y) <- setdiff(class(y), "dataset")
-  print(y, ...)
-  
+  cat("Cols: ", idc, " | ", valc, ", x-Axis: ", xaxi, "\n\n", sep = "")
+
+  NextMethod() # prints the tibble
   invisible(x)
 }
