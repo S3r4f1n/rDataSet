@@ -20,7 +20,39 @@ knitr::opts_chunk$set(
 
 rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left or from right.
 
-# convert these thoughts into a road map for this project (ids parameter) and other projects AI!
+## Roadmap and Future Directions
+
+### Current Project Goals
+
+The primary goal of rDataSet is to provide a robust framework for managing and manipulating datasets with clear identifier semantics. Key areas of focus include:
+
+1. **Simplified Dataset Creation**: The vision is to reduce the complexity of dataset creation by incorporating an `ids` parameter directly into core functions like `merge_with()`, making dataset creation optional for many use cases.
+
+2. **Enhanced Merging Capabilities**: Continue developing the set-based merging operations that provide fine-grained control over how datasets interact, particularly around handling missing data and conflicting values.
+
+3. **Flexibility in Data Representation**: Maintain support for wide, long, and decomposed formats to enable users to work with data in the most appropriate structure for their analysis tasks.
+
+### Future Enhancements
+
+Several potential improvements and extensions have been identified:
+
+1. **Ids Parameter Integration**: The ultimate direction is to make the `ids` parameter available directly in functions like `merge_with()` and related operations, potentially eliminating the need for explicit `dataset_build()` calls in many scenarios.
+
+2. **Text File Persistence**: Development of functionality for writing datasets as readable text files, which could serve as a separate project module.
+
+3. **Data Control Mechanisms**: Implementation of more sophisticated data control features such as:
+   - Piped data control through hashing (identity-based)
+   - Less restrictive measures using masks with catch-all behaviors
+   - Enhanced data validation and integrity checking capabilities
+
+### Project Completion Criteria
+
+We consider this project complete when:
+- The core set operations (`merge_with`, `mask_with`, `select_ids`) are well-documented and thoroughly tested
+- The transformation functions (`to_wide`, `to_long`, `to_decomposed`) are stable and performant
+- The package provides clear value over basic dplyr/tibble operations while remaining intuitive to use
+- There's sufficient documentation and examples to support adoption by practitioners
+
 I have the fear that this actually just could be a join with some merge function, and that all the other blabber is for nothing. Well, I still think that masking is a nice feature, and dropping IDs seems really cool. But we might actually reduce the whole thing to `ids_by` functions similar to `group_by`. This hints at a neat feature to include a "ids" parameter into the merge_with function such that dataset creation becomes obsolete for the most part.
 
 - Writing datasets as readable text files. (maybe its own project -> its own project)
