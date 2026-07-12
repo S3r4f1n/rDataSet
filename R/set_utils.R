@@ -1,7 +1,9 @@
-# Utility functions for dataset operations
 library(dplyr)
 
-#
+#' Dataset Difference
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @param strict Strictness of ID matching.
 #' @export
 dataset_diff <- function(
   a,
@@ -13,6 +15,10 @@ dataset_diff <- function(
     set_attr(., ids(.), "source", state = "wide")
 }
 
+#' Filter dataset
+#' @param ds A dataset object.
+#' @param ... Filter conditions.
+#' @export
 ds_filter <- function(ds, ...) {
   dots <- enquos(...)
 
@@ -23,7 +29,9 @@ ds_filter <- function(ds, ...) {
   dataset_transfrom(filtered, state(ds), x_axis(ds))
 }
 
-#' tidy select for ID columns only. if strict, error when non-ID columns selected
+#' Select ID columns
+#' @param ds A dataset object.
+#' @param ... ID columns to select.
 #' @export
 select_ids <- function(ds, ...) {
   dots <- enquos(...)
@@ -34,7 +42,10 @@ select_ids <- function(ds, ...) {
   dataset_transfrom(selected, state(ds))
 }
 
-
+#' Intersect with another dataset
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @export
 intersect_with <- function(a, b) {
   merge_with(
     a,
@@ -46,7 +57,10 @@ intersect_with <- function(a, b) {
   )
 }
 
-#' mask - replace values in a with values from b where b has values
+#' Mask with another dataset
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @param framed Whether to frame the result.
 #' @export
 mask_with <- function(a, b, framed = TRUE) {
   merged <- merge_with(
@@ -65,7 +79,10 @@ mask_with <- function(a, b, framed = TRUE) {
   }
 }
 
-#' fill - fill missing values in a with values from b
+#' Fill with another dataset
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @param framed Whether to frame the result.
 #' @export
 fill_with <- function(a, b, framed = TRUE) {
   merged <- merge_with(

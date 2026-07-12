@@ -1,8 +1,5 @@
-# after many attempts this seems to be an actually reasonable interface with merge_with and the
-# internal structur seems to be testable and reliable. small enough for testing big enough to achieve more.
 require(dplyr)
 
-# NULL list elements appear for missing rows in full_join -> replace with NA
 replace_nulls_with_na <- function(x) {
   if (!is.list(x)) {
     return(x)
@@ -14,13 +11,12 @@ replace_nulls_with_na <- function(x) {
   x
 }
 
-#' expects two datasets returns a dataset in long form with values from left and right
-#' in respective columns. Specify the out column names with left_name, and right_name.
-#' we could also see it as a dataet in wide format with a new colum e.g. source. this might
-#' actually be nice for leapfrog trie join futur. but for now we consider it to be a fulty long
-#' format as it will have two value columns. and no cloumn called value.
-#' this should be small enough helper such that testing is possible
-#' but usefull enough to dramatically simplyify other parts of the code
+#' Combine two datasets
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @param strict Strictness of ID matching.
+#' @param left_name Name for left values.
+#' @param right_name Name for right values.
 #' @internal
 combine_datasets <- function(
   a,
@@ -29,7 +25,6 @@ combine_datasets <- function(
   left_name = "left",
   right_name = "right"
 ) {
-  # The compare_ids() helper returns strings like "equal", "greater", "less", "missmatch"
   cmp <- compare_ids(ids(a), ids(b))
 
   if (!(cmp %in% strict)) {
@@ -57,21 +52,16 @@ combine_datasets <- function(
       !!right_name := replace_nulls_with_na(.data[[right_name]])
     )
 
-  # identify the column set that uniquely defines each row after the join
   new_ids <- union(ids(a), ids(b))
 
   set_attr(out, new_ids, x_axis = NULL, state = "scuffed_long")
 }
 
-#' Build a merging function that corresponds to the chosen set operation
-#' and precedence rule.
-#'
-#' @param op       set operation name, one of "left", "right", "diff",
-#'                 "xor", "and", "or".
-#' @param prc      precedence rule, either "left" (prefer left when both
-#'                 sides are present) or "right" (prefer right).
-#'
-#' @return A function `f(a, b)` that can be called inside `merg_helper`.
+#' Build a merging function
+#' @param op Operation name.
+#' @param prc Precedence rule.
+#' @return A function.
+#' @internal
 merge_func <- function(
   op = c("left", "right", "setdiff", "symdiff", "intersect", "union"),
   prc = c("left", "right")
@@ -100,8 +90,6 @@ merge_func <- function(
   )
 }
 
-# this is a hollow helper, and other functions in here are more specific
-# versions of this
 merg_helper <- function(
   a,
   b,
@@ -126,7 +114,13 @@ merg_helper <- function(
     dataset_transfrom(state(a), x_axis(a))
 }
 
-#' merge with some options
+#' Merge two datasets
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @param set_op Set operation.
+#' @param prec Precedence rule.
+#' @param strict Strictness of ID matching.
+#' @param keep Whether to keep missing values.
 #' @export
 merge_with <- function(
   a,

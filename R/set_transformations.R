@@ -1,17 +1,33 @@
-# @export
+#' Convert to wide format
+#' @param ds A dataset object.
+#' @param x_axis The x-axis column.
+#' @export
 to_wide <- function(ds, x_axis = NULL) {
   dataset_transfrom(ds, "wide", x_axis = x_axis)
 }
-# @export
+
+#' Convert to long format
+#' @param ds A dataset object.
+#' @export
 to_long <- function(ds) {
   dataset_transfrom(ds, "long", )
 }
-# @export
+
+#' Convert to decomposed format
+#' @param ds A dataset object.
+#' @param strategy Decomposition strategy.
+#' @param x_axis The x-axis column.
+#' @export
 to_decomposed <- function(ds, strategy = hirarchical_paths, x_axis = NULL) {
   dataset_transfrom(ds, "decomposed", x_axis, strategy)
 }
 
-# @export
+#' Transform dataset state
+#' @param ds A dataset object.
+#' @param to Target state.
+#' @param x_axis The x-axis column.
+#' @param decompose_strategy Strategy for decomposition.
+#' @export
 dataset_transfrom <- function(
   ds,
   to,

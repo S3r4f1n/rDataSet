@@ -1,7 +1,9 @@
 require(dplyr)
 
-# @todo handle non character ids
-#
+#' Convert wide dataset to long format
+#' @param dataset A dataset object in wide format.
+#' @return A dataset object in long format.
+#' @export
 wide_to_long <- function(dataset) {
   if (state(dataset) != "wide") {
     stop(
@@ -18,17 +20,20 @@ wide_to_long <- function(dataset) {
     return(set_attr(dataset, ids(dataset), NULL, state = "long"))
   }
 
-  # conversion
   x_axis <- x_axis(dataset)
 
   long <- dataset %>%
     tidyr::pivot_longer(val_cols(dataset), values_transform = as.list) %>%
     rename_with(~x_axis, name)
 
-  # setting metadata
   set_attr(long, ids(dataset), NULL, "long")
 }
 
+#' Convert long dataset to wide format
+#' @param dataset A dataset object in long format.
+#' @param col The column name to use as the x-axis.
+#' @return A dataset object in wide format.
+#' @export
 long_to_wide <- function(dataset, col = NULL) {
   if (state(dataset) != "long") {
     stop(
@@ -55,7 +60,6 @@ long_to_wide <- function(dataset, col = NULL) {
     )
   }
 
-  # conversion
   wide <- dataset %>%
     tidyr::pivot_wider(
       names_from = all_of(x_axis),
@@ -67,12 +71,13 @@ long_to_wide <- function(dataset, col = NULL) {
       ~ purrr::list_simplify(., strict = FALSE)
     ))
 
-  # setting metadata
   set_attr(wide, ids, x_axis, "wide")
 }
 
-# returns a dataset with all true values
-# used to get the "frame" of the wide format
+#' Get the frame of a wide dataset
+#' @param a A dataset object in wide format.
+#' @return A dataset with all values set to TRUE.
+#' @export
 dataset_frame <- function(a) {
   if (state(a) != "wide") {
     stop(paste0("Dataset must be in wide format. is: ", state(a)))

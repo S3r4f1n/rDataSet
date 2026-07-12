@@ -1,15 +1,10 @@
 require(dplyr)
 require(cli)
 
-
-# a dataset is a tibble with id cols
-#
-# internaly we store the formats, to implement format convertions
-# long: ids | val colum
-# wide: ids | val cols x id
-# decomposed. list(decomposed)
-
-# @export
+#' Build a dataset
+#' @param df A dataframe.
+#' @param ids ID columns.
+#' @export
 dataset_build <- function(df, ids) {
   if (!is.character(ids)) {
     stop(paste0("ids must be vector of character but is: ", typeof(ids)))
@@ -22,7 +17,12 @@ dataset_build <- function(df, ids) {
     dataset_valid()
 }
 
-# helper to never forget setting some attributes
+#' Set attributes for a dataset
+#' @param df A dataframe.
+#' @param ids ID columns.
+#' @param x_axis X-axis column.
+#' @param state Dataset state.
+#' @internal
 set_attr <- function(df, ids, x_axis, state) {
   attr(df, "dataset_ids") <- ids
   attr(df, "dataset_x_axis") <- x_axis
@@ -32,7 +32,8 @@ set_attr <- function(df, ids, x_axis, state) {
   df
 }
 
-# @export
+#' Create an empty dataset
+#' @export
 empty_set <- function() {
   dataset_build(tibble(), character(0))
 }
@@ -69,10 +70,12 @@ empty_rows <- function(dataset) {
 empty_cols <- function(dataset) {
   valc <- val_cols(dataset)
   cols <- colSums(!is.na(dataset[valc])) == 0
-  c(rep(FALSE, length(id_cols(dataset))), cols) # asumes ids come always first
+  c(rep(FALSE, length(id_cols(dataset))), cols)
 }
 
-
+#' Collapse a dataset
+#' @param dataset A dataset object.
+#' @export
 dataset_collapse <- function(dataset) {
   df <- dataset[!empty_rows(dataset), ]
   df <- df[, !empty_cols(df)]
@@ -108,7 +111,10 @@ dataset_valid <- function(ds) {
   ds
 }
 
-# @export
+#' Print a dataset
+#' @param x A dataset object.
+#' @param ... Additional arguments.
+#' @export
 print.dataset <- function(x, ...) {
   cat("Dataset - State: ", cli::col_blue(state(x)), ", IDs | Values\n")
 
@@ -118,6 +124,6 @@ print.dataset <- function(x, ...) {
 
   cat("Cols: ", idc, " | ", valc, ", x-Axis: ", xaxi, "\n\n", sep = "")
 
-  NextMethod() # prints the tibble
+  NextMethod()
   invisible(x)
 }
