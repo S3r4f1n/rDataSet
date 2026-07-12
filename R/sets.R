@@ -1,4 +1,5 @@
 require(dplyr)
+require(cli)
 
 
 # a dataset is a tibble with id cols
@@ -114,13 +115,17 @@ print.dataset <- function(x, ...) {
   state <- state(x)
 
   cat("Dataset - State: ", state, ", IDs | Values\n")
-  cat(
-    paste(ids, collapse = ", "),
-    "|",
-    paste(val_cols, collapse = ", "),
-    "\n\n"
-  )
+  
+  blue_ids <- cli::col_blue(paste(ids, collapse = ", "))
+  grey_vals <- cli::col_silver(paste(val_cols, collapse = ", "))
+  
+  cat(blue_ids, " | ", grey_vals, "\n\n")
 
-  NextMethod() # prints the tibble
+  # Remove 'dataset' class temporarily to avoid infinite recursion 
+  # and call the next print method (usually tibble/tbl_df)
+  y <- x
+  class(y) <- setdiff(class(y), "dataset")
+  print(y, ...)
+  
   invisible(x)
 }
