@@ -107,7 +107,7 @@ dataset_valid <- function(ds) {
   ds
 }
 
-print.dataset <- function(x, ...) {
+"print.dataset" <- function(x, ...) {
   ids <- ids(x)
   val_cols <- val_cols(x)
   state <- state(x)
@@ -117,6 +117,6 @@ print.dataset <- function(x, ...) {
   cat("IDs:", paste(ids, collapse = ", "), "\n")
   cat("Value columns:", paste(val_cols, collapse = ", "), "\n\n")
 
-  NextMethod() # prints the tibble
+  # NextMethod() # prints the tibble
   invisible(x)
 }
