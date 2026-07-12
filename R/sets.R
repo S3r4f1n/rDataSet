@@ -107,7 +107,8 @@ dataset_valid <- function(ds) {
   ds
 }
 
-"print.dataset" <- function(x, ...) {
+#' @export
+print.dataset <- function(x, ...) {
   ids <- ids(x)
   val_cols <- val_cols(x)
   state <- state(x)
@@ -117,6 +118,11 @@ dataset_valid <- function(ds) {
   cat("IDs:", paste(ids, collapse = ", "), "\n")
   cat("Value columns:", paste(val_cols, collapse = ", "), "\n\n")
 
-  # NextMethod() # prints the tibble
+  # Remove 'dataset' class temporarily to avoid infinite recursion 
+  # and call the next print method (usually tibble/tbl_df)
+  y <- x
+  class(y) <- setdiff(class(y), "dataset")
+  print(y, ...)
+  
   invisible(x)
 }
