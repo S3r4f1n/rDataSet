@@ -20,47 +20,11 @@ knitr::opts_chunk$set(
 
 rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left or from right.
 
-## Roadmap and Future Directions
+Currently the project does work but one major usabilty imporvement would be to add an ids parameter to functions like merge_with, such that one no longer needs to built the datasets up front they are built within. This would allow to do merges on tibbles / dataframes directly and no longer needs to create datasets in the first place.
 
-### Current Project Goals
+further ideas which came up during the creation of this project is a readable text representation of data which builds upon decomposed dataset structur. And additionaly to have some form of dataset version control. This could be built with some sort of masking and patches. E.g. patches beeing diff logs of datasets.
 
-The primary goal of rDataSet is to provide a robust framework for managing and manipulating datasets with clear identifier semantics. Key areas of focus include:
-
-1. **Simplified Dataset Creation**: The vision is to reduce the complexity of dataset creation by incorporating an `ids` parameter directly into core functions like `merge_with()`, making dataset creation optional for many use cases.
-
-2. **Enhanced Merging Capabilities**: Continue developing the set-based merging operations that provide fine-grained control over how datasets interact, particularly around handling missing data and conflicting values.
-
-3. **Flexibility in Data Representation**: Maintain support for wide, long, and decomposed formats to enable users to work with data in the most appropriate structure for their analysis tasks.
-
-### Future Enhancements
-
-Several potential improvements and extensions have been identified:
-
-1. **Ids Parameter Integration**: The ultimate direction is to make the `ids` parameter available directly in functions like `merge_with()` and related operations, potentially eliminating the need for explicit `dataset_build()` calls in many scenarios.
-
-2. **Text File Persistence**: Development of functionality for writing datasets as readable text files, which could serve as a separate project module.
-
-3. **Data Control Mechanisms**: Implementation of more sophisticated data control features such as:
-   - Piped data control through hashing (identity-based)
-   - Less restrictive measures using masks with catch-all behaviors
-   - Enhanced data validation and integrity checking capabilities
-
-### Project Completion Criteria
-
-We consider this project complete when:
-- The core set operations (`merge_with`, `mask_with`, `select_ids`) are well-documented and thoroughly tested
-- The transformation functions (`to_wide`, `to_long`, `to_decomposed`) are stable and performant
-- The package provides clear value over basic dplyr/tibble operations while remaining intuitive to use
-- There's sufficient documentation and examples to support adoption by practitioners
-
-I have the fear that this actually just could be a join with some merge function, and that all the other blabber is for nothing. Well, I still think that masking is a nice feature, and dropping IDs seems really cool. But we might actually reduce the whole thing to `ids_by` functions similar to `group_by`. This hints at a neat feature to include a "ids" parameter into the merge_with function such that dataset creation becomes obsolete for the most part.
-
-- Writing datasets as readable text files. (maybe its own project -> its own project)
-- Having piped data control e.g. through hashing (identity), or less restrictive measures, e.g. through a mask with catch-all behavior. (certainly its own project)
-
-So what are the goals until we say this is complete? I think we have discovered some fancy transformations between the long, wide, and decomposed data formats. I'm afraid that these are too low-level to ever be used in a daily case. But we can build some useful functions on top of them like `mask_with` and `select_ids()`. It might also be very helpful for text representations.
-
-In application this might look like this:
+An application of the dataset application this might look like this:
 ```R
 # our original dataset containing our animals and some mistakes
 dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", NA), vals2 = c("animal", "animal", "other", "other")) %>%
@@ -112,18 +76,11 @@ install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 
 ## Dataset Representations
 
-Datasets in rDataSet can exist in three different structural formats, each serving different analytical purposes:
+I rather oblivious to the theory concerning around this, tough i know basics of relational datasystems and see the paralles of the long format to the factors in functional agregate querries. well im getting ahead of myself here. The Dataset can be represented in three forms. Wide, Long, and decomposed. Each is almost loss free. Well almost since some quirks of how datasets are stored in R make it hard to be truly loss free represnations e.g. numbers are converted to characters if they are used as the x-Axis. And again i'm getting ahead of myself. Will dive into the three representations first. Covering the wide, then the long and lastly the decomposed format.
 
-### Wide Format
-Wide format datasets have a straightforward structure where each row represents a unique combination of identifier values, and each value column holds a specific variable's measurements. This format is intuitive and mirrors traditional tabular data structures, making it easy to visualize and analyze.
-
-### Long Format
-Long format datasets transform the data structure so that each row represents a single observation of a variable for a given identifier combination. This format is particularly useful for statistical analysis and when working with time series data or repeated measures, as it aligns with the structure expected by many modeling functions.
-
-### Decomposed Format
-Decomposed datasets break down complex data structures into hierarchical components based on identifier relationships. This format allows for more granular analysis of subsets of the data and enables sophisticated operations that would be difficult or impossible to perform on the full dataset structure. Each component of a decomposed dataset can be analyzed independently before being reassembled.
-
-The conversion between these formats is handled by functions like `to_wide()`, `to_long()`, and `to_decomposed()`, along with their corresponding reverse operations. This flexibility in representation allows users to choose the most appropriate structure for their specific analytical task.
+1. The Wide format the most common representation. This is really just a tibble with some identification of id cols.
+2. The Wide format is what you get if you think of the value column names to be the last id. We then can write all the ids as columns and get one single value column. When transforming back to wide we can even choose a new id as the x-Axis. The long format is the driving force between the merge algortihms in this library. It is super usfull to find differences in a datset as well. the dataset_diff for example returns a difference view in long format.
+3. The decommposed format is obtained by splitting the dataset into smaller tables. Each table contains a subset of the ids and values which are functionally dependent on these ids. E.g. we loose no information when we join these smaller tables back together. These are a loss free join decomposition. This can be usefull if for example have a dataset containing information on the personal and household level. If want a smaller table only containing the household infromation you can easily select the houshold id and retain a dataset only containing the variables which are uniquley determined by the household id.
 
 ## Set Operations
 
