@@ -12,11 +12,15 @@ replace_nulls_with_na <- function(x) {
 }
 
 #' Combine two datasets
+#'
+#' Joins the long forms of two datasets into a single intermediate table.
+#'
 #' @param a A dataset object.
 #' @param b A dataset object.
 #' @param strict Strictness of ID matching.
 #' @param left_name Name for left values.
 #' @param right_name Name for right values.
+#' @return A dataframe in the internal `"scuffed_long"` format.
 #' @internal
 combine_datasets <- function(
   a,
@@ -58,9 +62,13 @@ combine_datasets <- function(
 }
 
 #' Build a merging function
+#'
+#' Creates the value-level logic for a merge operation.
+#'
 #' @param op Operation name.
 #' @param prc Precedence rule.
-#' @return A function.
+#' @return A function that takes two value vectors and returns the merged
+#'   vector.
 #' @internal
 merge_func <- function(
   op = c("left", "right", "setdiff", "symdiff", "intersect", "union"),
@@ -114,13 +122,24 @@ merg_helper <- function(
     dataset_transfrom(state(a), x_axis(a))
 }
 
-#' Merge two datasets
+#' Merge two datasets with a set operation
+#'
+#' Combines two datasets using a flexible set operation (left, right,
+#' setdiff, symdiff, intersect, union) and a chosen precedence rule. ID
+#' matching strictness controls which datasets are permissible.
+#'
 #' @param a A dataset object.
 #' @param b A dataset object.
-#' @param set_op Set operation.
-#' @param prec Precedence rule.
-#' @param strict Strictness of ID matching.
-#' @param keep Whether to keep missing values.
+#' @param set_op Set operation to apply: one of `"left"`, `"right"`,
+#'   `"setdiff"`, `"symdiff"`, `"intersect"`, or `"union"`.
+#' @param prec Precedence rule when ID columns differ: `"left"` gives
+#'   priority to values from `a`, `"right"` to values from `b`.
+#' @param strict Character vector specifying allowed ID comparisons:
+#'   `"equal"`, `"greater"`, `"less"`. Default
+#'   `c("equal","greater","less")` allows all three.
+#' @param keep Logical. If `FALSE`, drops rows where the result value is
+#'   `NA`. Default `FALSE`.
+#' @return A dataset object resulting from the merge.
 #' @export
 merge_with <- function(
   a,

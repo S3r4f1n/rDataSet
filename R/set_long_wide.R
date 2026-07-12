@@ -1,6 +1,11 @@
 require(dplyr)
 
-#' Convert wide dataset to long format
+#' Widen to long conversion
+#'
+#' Converts a dataset from wide format (multiple value columns) to long
+#' format (one row per value), preserving ID columns and the x-axis
+#' information.
+#'
 #' @param dataset A dataset object in wide format.
 #' @return A dataset object in long format.
 #' @export
@@ -29,9 +34,14 @@ wide_to_long <- function(dataset) {
   set_attr(long, ids(dataset), NULL, "long")
 }
 
-#' Convert long dataset to wide format
+#' Long to wide conversion
+#'
+#' Converts a dataset from long format (rows with values) back to wide
+#' format where each combination of identifiers maps to one row.
+#'
 #' @param dataset A dataset object in long format.
-#' @param col The column name to use as the x-axis.
+#' @param col The column to use as the x-axis (value column names). If
+#'   `NULL`, the last ID column is used.
 #' @return A dataset object in wide format.
 #' @export
 long_to_wide <- function(dataset, col = NULL) {
@@ -74,9 +84,13 @@ long_to_wide <- function(dataset, col = NULL) {
   set_attr(wide, ids, x_axis, "wide")
 }
 
-#' Get the frame of a wide dataset
+#' Obtain the logical frame of a wide dataset
+#'
+#' Creates a copy of the dataset where every value is replaced by `TRUE`.
+#' Useful for masking or preserving the original cell locations.
+#'
 #' @param a A dataset object in wide format.
-#' @return A dataset with all values set to TRUE.
+#' @return A dataset with all values set to `TRUE`.
 #' @export
 dataset_frame <- function(a) {
   if (state(a) != "wide") {

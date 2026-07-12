@@ -1,9 +1,15 @@
 require(dplyr)
 require(cli)
 
-#' Build a dataset
-#' @param df A dataframe.
-#' @param ids ID columns.
+#' Create a dataset
+#'
+#' Builds a dataset object from a data frame and a vector of identifier
+#' column names. The resulting dataset is stored in wide format by default.
+#'
+#' @param df A data frame containing identifier and value columns.
+#' @param ids Character vector of column names that define the unique row
+#'   identifier(s). Must not include the future value axis column.
+#' @return A dataset object (in wide format).
 #' @export
 dataset_build <- function(df, ids) {
   if (!is.character(ids)) {
@@ -33,6 +39,10 @@ set_attr <- function(df, ids, x_axis, state) {
 }
 
 #' Create an empty dataset
+#'
+#' Returns a dataset with zero rows and zero ID columns.
+#'
+#' @return An empty dataset object (class `"dataset"`, state `"wide"`).
 #' @export
 empty_set <- function() {
   dataset_build(tibble(), character(0))
@@ -74,7 +84,13 @@ empty_cols <- function(dataset) {
 }
 
 #' Collapse a dataset
+#'
+#' Removes rows and columns that contain only missing values (`NA`). This
+#' is a space-saving operation that does not change the logical content of
+#' the dataset.
+#'
 #' @param dataset A dataset object.
+#' @return A dataset with empty rows and columns removed.
 #' @export
 dataset_collapse <- function(dataset) {
   df <- dataset[!empty_rows(dataset), ]
@@ -112,8 +128,14 @@ dataset_valid <- function(ds) {
 }
 
 #' Print a dataset
+#'
+#' Provides a summary of the dataset's state, ID columns, value columns,
+#' and x-axis, then delegates to the next print method to show the actual
+#' data.
+#'
 #' @param x A dataset object.
-#' @param ... Additional arguments.
+#' @param ... Further arguments passed to other print methods.
+#' @return The object `x`, invisibly.
 #' @export
 print.dataset <- function(x, ...) {
   cat("Dataset - State: ", cli::col_blue(state(x)), ", IDs | Values\n")

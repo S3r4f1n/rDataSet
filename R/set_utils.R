@@ -1,9 +1,17 @@
 library(dplyr)
 
-#' Dataset Difference
+#' Difference between two datasets
+#'
+#' Compares two datasets cell by cell and returns only rows where they differ.
+#' Differences include rows present in only one dataset and rows where the
+#' values differ.
+#'
 #' @param a A dataset object.
 #' @param b A dataset object.
-#' @param strict Strictness of ID matching.
+#' @param strict Character vector specifying allowed ID comparisons:
+#'   `"equal"` (exact match), `"greater"` (IDs of `a` are superset), or
+#'   `"less"` (IDs of `a` are subset). Default `"equal"`.
+#' @return A dataset in wide format containing the differing rows.
 #' @export
 dataset_diff <- function(
   a,
@@ -15,9 +23,16 @@ dataset_diff <- function(
     set_attr(., ids(.), "source", state = "wide")
 }
 
-#' Filter dataset
+#' Filter a dataset
+#'
+#' Applies a conjunction of **dplyr** filter expressions to the dataset.
+#' Operates on the internal long representation but returns the result in
+#' the original state.
+#'
 #' @param ds A dataset object.
-#' @param ... Filter conditions.
+#' @param ... Filter expressions evaluated in the context of the long-form
+#'   data.
+#' @return A filtered dataset in the same state as `ds`.
 #' @export
 ds_filter <- function(ds, ...) {
   dots <- enquos(...)
@@ -29,9 +44,16 @@ ds_filter <- function(ds, ...) {
   dataset_transfrom(filtered, state(ds), x_axis(ds))
 }
 
-#' Select ID columns
+#' Select a subset of identifier columns
+#'
+#' Keeps only the rows associated with the specified identifier columns,
+#' aggregating their values accordingly. Remaining identifiers are dropped.
+#'
 #' @param ds A dataset object.
-#' @param ... ID columns to select.
+#' @param ... Identifier column names, passed as unquoted expressions
+#'   (tidy evaluation).
+#' @return A dataset containing only the selected identifiers, in the same
+#'   state as `ds`.
 #' @export
 select_ids <- function(ds, ...) {
   dots <- enquos(...)
@@ -43,8 +65,13 @@ select_ids <- function(ds, ...) {
 }
 
 #' Intersect with another dataset
+#'
+#' Keeps only the cells in `a` for which there is a corresponding non‑`NA`
+#' cell in `b`. Uses left precedence and equal or greater ID requirement.
+#'
 #' @param a A dataset object.
 #' @param b A dataset object.
+#' @return A dataset containing intersection values from `a`.
 #' @export
 intersect_with <- function(a, b) {
   merge_with(
@@ -57,10 +84,16 @@ intersect_with <- function(a, b) {
   )
 }
 
-#' Mask with another dataset
-#' @param a A dataset object.
-#' @param b A dataset object.
-#' @param framed Whether to frame the result.
+#' Mask a dataset with another
+#'
+#' Keeps only the cells in `a` that are also present in `b`. Optionally
+#' restricts the result to the original value locations of `a` (framed).
+#'
+#' @param a A dataset object (the data to be masked).
+#' @param b A dataset object (the mask).
+#' @param framed Logical. If `TRUE`, ensures the result only contains
+#'   values for which `a` has entries. Default `TRUE`.
+#' @return A masked dataset.
 #' @export
 mask_with <- function(a, b, framed = TRUE) {
   merged <- merge_with(
@@ -79,10 +112,16 @@ mask_with <- function(a, b, framed = TRUE) {
   }
 }
 
-#' Fill with another dataset
-#' @param a A dataset object.
-#' @param b A dataset object.
-#' @param framed Whether to frame the result.
+#' Fill missing values from another dataset
+#'
+#' Replaces `NA` cells in `a` with values from `b`. Optionally keeps the
+#' original value locations (framed).
+#'
+#' @param a A dataset object (to be filled).
+#' @param b A dataset object (source of fill values).
+#' @param framed Logical. If `TRUE`, ensures the result only contains
+#'   values for which `a` has entries. Default `TRUE`.
+#' @return A filled dataset.
 #' @export
 fill_with <- function(a, b, framed = TRUE) {
   merged <- merge_with(

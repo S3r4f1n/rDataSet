@@ -1,48 +1,51 @@
 library(dplyr)
 
-#' Set Difference
+#' Set difference (a - b)
 #'
-#' Returns values from dataset `a` that are not present in dataset `b`.
+#' Returns cells from `a` that are missing (or differ) in `b`.
+#' Under the hood this is a `setdiff` merge with left precedence.
 #'
 #' @param a A dataset object (minuend).
 #' @param b A dataset object (subtrahend).
-#' @return A dataset containing values from `a` where corresponding values in `b` are `NA`.
+#' @return A dataset containing only values from `a` where `b` is `NA`.
 #' @export
 dataset_minus <- function(a, b) {
   merge_with(a, b, "setdiff", "left")
 }
 
-#' Set Intersection
+#' Set intersection (a & b)
 #'
-#' Returns values from dataset `a` that are also present in dataset `b`.
+#' Keeps cells from `a` that also exist in `b`.
 #'
-#' @param a A dataset object (left operand).
-#' @param b A dataset object (right operand, used as filter).
-#' @return A dataset containing values from `a` where corresponding values in `b` are not `NA`.
+#' @param a A dataset object.
+#' @param b A dataset object.
+#' @return A dataset with the intersection values taken from `a`.
 #' @export
 dataset_intersect <- function(a, b) {
   merge_with(a, b, "intersect", "left")
 }
 
-#' Set Union
+#' Set union (a | b)
 #'
-#' Returns all values from either dataset `a` or dataset `b`.
+#' Returns all cells present in either dataset, giving precedence to `a`
+#' when both sides have a value.
 #'
-#' @param a A dataset object (left operand, takes precedence).
+#' @param a A dataset object (left operand).
 #' @param b A dataset object (right operand).
-#' @return A dataset containing values from `a` where available, otherwise from `b`.
+#' @return A dataset containing the union of values.
 #' @export
 dataset_union <- function(a, b) {
   merge_with(a, b, "union", "left")
 }
 
-#' Set Equality
+#' Test equality of two datasets
 #'
-#' Compares two datasets cell-by-cell and returns `TRUE` if they are identical.
+#' Compares two datasets cell-by-cell, including ID columns and value
+#' columns. Issues a warning if value columns differ.
 #'
 #' @param a A dataset object.
 #' @param b A dataset object.
-#' @return `TRUE` if datasets are identical, `FALSE` otherwise.
+#' @return `TRUE` if the datasets are identical, `FALSE` otherwise.
 #' @export
 dataset_equality <- function(a, b) {
   id_a <- ids(a)
