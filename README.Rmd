@@ -18,13 +18,13 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left or from right.
+rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely identify each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from the left or from the right dataset.
 
-Currently the project does work but one major usabilty imporvement would be to add an ids parameter to functions like merge_with, such that one no longer needs to built the datasets up front they are built within. This would allow to do merges on tibbles / dataframes directly and no longer needs to create datasets in the first place.
+One major usability improvement planned for the future is adding an `ids` parameter to functions like `merge_with()`, so that datasets no longer need to be built up front. This would allow merges directly on tibbles or data frames, removing the need to explicitly create dataset objects in the first place.
 
-further ideas which came up during the creation of this project is a readable text representation of data which builds upon decomposed dataset structur. And additionaly to have some form of dataset version control. This could be built with some sort of masking and patches. E.g. patches beeing diff logs of datasets.
+Further ideas that came up during the creation of this project include a readable text representation of data that builds upon the decomposed dataset structure, and some form of dataset version control. The latter could be built using masking and patches — where patches are essentially diff logs of datasets that can be applied and reversed.
 
-An application of the dataset application this might look like this:
+An application of the dataset might look like this:
 ```R
 # our original dataset containing our animals and some mistakes
 dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", NA), vals2 = c("animal", "animal", "other", "other")) %>%
@@ -76,11 +76,13 @@ install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 
 ## Dataset Representations
 
-I rather oblivious to the theory concerning around this, tough i know basics of relational datasystems and see the paralles of the long format to the factors in functional agregate querries. well im getting ahead of myself here. The Dataset can be represented in three forms. Wide, Long, and decomposed. Each is almost loss free. Well almost since some quirks of how datasets are stored in R make it hard to be truly loss free represnations e.g. numbers are converted to characters if they are used as the x-Axis. And again i'm getting ahead of myself. Will dive into the three representations first. Covering the wide, then the long and lastly the decomposed format.
+A dataset can be represented in three forms: wide, long, and decomposed. Each conversion is almost lossless — the one notable exception is that numbers used as the x-axis may be coerced to characters during transformation. The three formats are:
 
-1. The Wide format the most common representation. This is really just a tibble with some identification of id cols.
-2. The Wide format is what you get if you think of the value column names to be the last id. We then can write all the ids as columns and get one single value column. When transforming back to wide we can even choose a new id as the x-Axis. The long format is the driving force between the merge algortihms in this library. It is super usfull to find differences in a datset as well. the dataset_diff for example returns a difference view in long format.
-3. The decommposed format is obtained by splitting the dataset into smaller tables. Each table contains a subset of the ids and values which are functionally dependent on these ids. E.g. we loose no information when we join these smaller tables back together. These are a loss free join decomposition. This can be usefull if for example have a dataset containing information on the personal and household level. If want a smaller table only containing the household infromation you can easily select the houshold id and retain a dataset only containing the variables which are uniquley determined by the household id.
+1. **Wide format** is the most common representation and the default. It is essentially just a tibble with some metadata identifying which columns are IDs and which are values. Each row represents a unique combination of ID values.
+
+2. **Long format** is what you get when you treat the value column names as an additional identifier — the last ID so to speak. All IDs are written as columns and there is a single `variable` column and a single `value` column. This format is the driving force behind the merge algorithms in this library, as it makes it straightforward to align and compare datasets cell by cell. It is also very useful for inspecting differences — `dataset_diff()` for example returns its result in long format. When converting back to wide, you can optionally choose which ID to use as the x-axis.
+
+3. **Decomposed format** is obtained by splitting the dataset into a list of smaller tables. Each table contains a subset of the IDs and only the value columns that are functionally dependent on those IDs — meaning no information is lost when joining the tables back together. This is essentially a lossless join decomposition. It is particularly useful when a dataset contains information at multiple levels of granularity. For example, if a dataset contains both person-level and household-level variables, you can select the household ID and get back a smaller table containing only the variables that are uniquely determined by the household — without having to manually specify which columns those are.
 
 ## Set Operations
 
@@ -155,4 +157,3 @@ The following functions are exported from the rDataSet package:
 ## License
 
 GPL (>= 3)
-```
