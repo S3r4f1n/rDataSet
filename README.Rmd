@@ -77,7 +77,20 @@ devtools::install("/path/to/rDataSet")
 install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 ```
 
-# insert here a chapter about the three representations, long, wide, decomposed AI!
+## Dataset Representations
+
+Datasets in rDataSet can exist in three different structural formats, each serving different analytical purposes:
+
+### Wide Format
+Wide format datasets have a straightforward structure where each row represents a unique combination of identifier values, and each value column holds a specific variable's measurements. This format is intuitive and mirrors traditional tabular data structures, making it easy to visualize and analyze.
+
+### Long Format
+Long format datasets transform the data structure so that each row represents a single observation of a variable for a given identifier combination. This format is particularly useful for statistical analysis and when working with time series data or repeated measures, as it aligns with the structure expected by many modeling functions.
+
+### Decomposed Format
+Decomposed datasets break down complex data structures into hierarchical components based on identifier relationships. This format allows for more granular analysis of subsets of the data and enables sophisticated operations that would be difficult or impossible to perform on the full dataset structure. Each component of a decomposed dataset can be analyzed independently before being reassembled.
+
+The conversion between these formats is handled by functions like `to_wide()`, `to_long()`, and `to_decomposed()`, along with their corresponding reverse operations. This flexibility in representation allows users to choose the most appropriate structure for their specific analytical task.
 
 ## Set Operations
 
