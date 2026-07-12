@@ -9,47 +9,7 @@ library(dplyr)
 #' @return A dataset containing values from `a` where corresponding values in `b` are `NA`.
 #' @export
 dataset_minus <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
-  if (!identical(id_a, id_b)) {
-    stop(
-      "ids cols don't match, datasets are incomparable:",
-      "\nids a: ",
-      paste(id_a, collapse = ", "),
-      "\nids b: ",
-      paste(id_b, collapse = ", ")
-    )
-  }
-
-  if (is_empty_set(a)) {
-    return(a)
-  }
-  if (is_empty_set(b)) {
-    return(a)
-  }
-
-  ids <- id_a
-  state <- state(a)
-  x_axis <- x_axis(a)
-
-  a <- to_long(a) %>% rename(value_dataset_a_ending = "value")
-  b <- to_long(b) %>% rename(value_dataset_b_ending = "value")
-
-  merged <- left_join(a, b, by = id_a, keep = FALSE)
-
-  out <- merged %>%
-    mutate(
-      value = if_else(
-        is.na(value_dataset_b_ending),
-        value_dataset_a_ending,
-        list(NA)
-      )
-    ) %>%
-    select(-matches("_dataset_._ending$"))
-
-  set_attr(out, ids, NULL, "long") |>
-    dataset_transfrom(state, x_axis) |>
-    dataset_collapse()
+  merge_with(a, b, "setdiff", "left")
 }
 
 #' Set Intersection
@@ -61,47 +21,7 @@ dataset_minus <- function(a, b) {
 #' @return A dataset containing values from `a` where corresponding values in `b` are not `NA`.
 #' @export
 dataset_intersect <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
-  if (!identical(id_a, id_b)) {
-    stop(
-      "ids cols don't match, datasets are incomparable:",
-      "\nids a: ",
-      paste(id_a, collapse = ", "),
-      "\nids b: ",
-      paste(id_b, collapse = ", ")
-    )
-  }
-
-  if (is_empty_set(a)) {
-    return(a)
-  }
-  if (is_empty_set(b)) {
-    return(b)
-  }
-
-  ids <- id_a
-  state <- state(a)
-  x_axis <- x_axis(a)
-
-  a_long <- to_long(a) %>% rename(value_dataset_a_ending = "value")
-  b_long <- to_long(b) %>% rename(value_dataset_b_ending = "value")
-
-  merged <- inner_join(a_long, b_long, by = ids, keep = FALSE)
-
-  out <- merged %>%
-    mutate(
-      value = if_else(
-        !is.na(value_dataset_b_ending),
-        value_dataset_a_ending,
-        list(NA)
-      )
-    ) %>%
-    select(-matches("_dataset_._ending$"))
-
-  set_attr(out, ids, NULL, "long") |>
-    dataset_transfrom(state, x_axis) |>
-    dataset_collapse()
+  merge_with(a, b, "intersect", "left")
 }
 
 #' Set Union
@@ -113,58 +33,7 @@ dataset_intersect <- function(a, b) {
 #' @return A dataset containing values from `a` where available, otherwise from `b`.
 #' @export
 dataset_union <- function(a, b) {
-  id_a <- ids(a)
-  id_b <- ids(b)
-  if (!identical(id_a, id_b)) {
-    stop(
-      "ids cols don't match, datasets are incomparable:",
-      "\nids a: ",
-      paste(id_a, collapse = ", "),
-      "\nids b: ",
-      paste(id_b, collapse = ", ")
-    )
-  }
-
-  if (is_empty_set(a)) {
-    return(b)
-  }
-  if (is_empty_set(b)) {
-    return(a)
-  }
-
-  ids <- id_a
-  state <- state(a)
-  x_axis <- x_axis(a)
-
-  a_long <- to_long(a) %>% rename(value_dataset_a_ending = "value")
-  b_long <- to_long(b) %>% rename(value_dataset_b_ending = "value")
-
-  merged <- full_join(a_long, b_long, by = id_a, keep = FALSE)
-
-  replace_nulls_with_na <- function(x) {
-    if (!is.list(x)) {
-      return(x)
-    }
-    i <- which(lengths(x) == 0)
-    if (length(i)) {
-      x[i] <- list(NA)
-    }
-    x
-  }
-
-  out <- merged %>%
-    mutate(
-      value = if_else(
-        is.na(replace_nulls_with_na(value_dataset_a_ending)),
-        value_dataset_b_ending,
-        value_dataset_a_ending
-      )
-    ) %>%
-    select(-matches("_dataset_._ending$"))
-
-  set_attr(out, ids, NULL, "long") |>
-    dataset_transfrom(state, x_axis) |>
-    dataset_collapse()
+  merge_with(a, b, "union", "left")
 }
 
 #' Set Equality

@@ -148,7 +148,6 @@ test_that("print.dataset output contains expected text", {
   df <- data.frame(id1 = 1, variable = "x", val = 10, stringsAsFactors = FALSE)
   ds <- dataset_build(df, "id1")
 
-  expect_output(print(ds), "Dataset")
-  expect_output(print(ds), "IDs: id1, variable")
-  expect_output(print(ds), "Value columns: variable, val")
+  expect_output(print(ds), "Dataset - State")
+  expect_output(print(ds), "Cols: id1 | val, x-Axis: variable")
 })

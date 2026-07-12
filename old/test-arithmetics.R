@@ -1,4 +1,7 @@
-A <- dataset_build(tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10), what = "hi"), "i")
+A <- dataset_build(
+  tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10), what = "hi"),
+  "i"
+)
 B <- dataset_build(tibble(i = 1:10, b = na_if(1:10, 3), what = "hi"), "i")
 C <- dataset_build(tibble(i = 1:5, b = 10:6, c = 2), "i")
 D <- dataset_build(tibble(i = 1:5, b = 10:6, c = 2), "b")
@@ -13,7 +16,6 @@ test_that("Testing basic equality", {
 test_that("Testing inequality", {
   expect_warning(expect_equal(A == B, FALSE))
   expect_warning(expect_equal(B == A, FALSE))
-
 })
 
 test_that("Testing incomparabilty", {
@@ -37,7 +39,7 @@ test_that("Testing Union", {
 })
 
 test_that("Testing Minus", {
-  empty_set <-  dataset_build(tibble(i = 1, b = NA), "i")
+  empty_set <- dataset_build(tibble(i = 1, b = NA), "i")
   expect_equal(empty_set == (A - A), TRUE)
   expect_equal(empty_set == (B - B), TRUE)
   expect_equal(empty_set == (C - C), TRUE)
