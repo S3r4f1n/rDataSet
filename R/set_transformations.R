@@ -1,13 +1,17 @@
+# @export
 to_wide <- function(ds, x_axis = NULL) {
   dataset_transfrom(ds, "wide", x_axis = x_axis)
 }
+# @export
 to_long <- function(ds) {
   dataset_transfrom(ds, "long", )
 }
+# @export
 to_decomposed <- function(ds, strategy = hirarchical_paths, x_axis = NULL) {
   dataset_transfrom(ds, "decomposed", x_axis, strategy)
 }
 
+# @export
 dataset_transfrom <- function(
   ds,
   to,

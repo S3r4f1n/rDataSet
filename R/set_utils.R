@@ -1,8 +1,8 @@
 # Utility functions for dataset operations
 library(dplyr)
 
-# @todo test suite, wait with this as this is likely going to change in the futur
 #
+#' @export
 dataset_diff <- function(
   a,
   b,
@@ -24,6 +24,7 @@ ds_filter <- function(ds, ...) {
 }
 
 #' tidy select for ID columns only. if strict, error when non-ID columns selected
+#' @export
 select_ids <- function(ds, ...) {
   dots <- enquos(...)
   ids <- select(select(ds, all_of(id_cols(ds))), !!!dots) |> names()

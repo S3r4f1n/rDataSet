@@ -8,6 +8,7 @@ require(dplyr)
 # wide: ids | val cols x id
 # decomposed. list(decomposed)
 
+# @export
 dataset_build <- function(df, ids) {
   if (!is.character(ids)) {
     stop(paste0("ids must be vector of character but is: ", typeof(ids)))
@@ -16,23 +17,21 @@ dataset_build <- function(df, ids) {
     stop(paste0("the df must be a dataframe but is: ", class(ids)))
   }
 
-  set_attr(df, c(ids, "variable"), "variable", "wide", TRUE) |>
+  set_attr(df, c(ids, "variable"), "variable", "wide") |>
     dataset_valid()
 }
 
 # helper to never forget setting some attributes
-set_attr <- function(df, ids, x_axis, state, bloated = NULL) {
+set_attr <- function(df, ids, x_axis, state) {
   attr(df, "dataset_ids") <- ids
   attr(df, "dataset_x_axis") <- x_axis
   attr(df, "dataset_state") <- state
-  if (!is.null(bloated)) {
-    # attr(df, "dataset_bloated") <- bloated # not used currently
-  }
   class(df) <- union("dataset", class(df))
 
   df
 }
 
+# @export
 empty_set <- function() {
   dataset_build(tibble(), character(0))
 }
@@ -76,7 +75,7 @@ empty_cols <- function(dataset) {
 dataset_collapse <- function(dataset) {
   df <- dataset[!empty_rows(dataset), ]
   df <- df[, !empty_cols(df)]
-  set_attr(df, ids(dataset), x_axis(dataset), state(dataset), bloated = FALSE)
+  set_attr(df, ids(dataset), x_axis(dataset), state(dataset))
 }
 
 id_integrity <- function(dataset) {

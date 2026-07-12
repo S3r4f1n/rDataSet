@@ -15,7 +15,6 @@ test_that("dataset_build with valid inputs", {
   expect_equal(attr(ds, "dataset_ids"), c("id1", "id2", "variable"))
   expect_equal(attr(ds, "dataset_x_axis"), "variable")
   expect_equal(attr(ds, "dataset_state"), "wide")
-  # expect_true(attr(ds, "dataset_bloated"))
 })
 
 test_that("dataset_build errors", {
@@ -65,12 +64,11 @@ test_that("x_axis, ids, state, id_cols, val_cols", {
 
 test_that("set_attr allows custom attributes", {
   df <- data.frame(a = 1, b = 2, stringsAsFactors = FALSE)
-  res <- set_attr(df, c("a", "b", "c"), "x", "long", FALSE)
+  res <- set_attr(df, c("a", "b", "c"), "x", "long")
   expect_s3_class(res, "dataset")
   expect_equal(attr(res, "dataset_ids"), c("a", "b", "c"))
   expect_equal(attr(res, "dataset_x_axis"), "x")
   expect_equal(attr(res, "dataset_state"), "long")
-  # expect_equal(attr(res, "dataset_bloated"), FALSE)
 })
 
 test_that("empty_rows and empty_cols with NA values", {
@@ -104,7 +102,6 @@ test_that("dataset_collapse removes empty rows and cols", {
   expect_equal(nrow(ds_collapsed), 2)
   expect_equal(names(ds_collapsed), c("id1", "variable", "val"))
 
-  # expect_false(attr(ds_collapsed, "dataset_bloated"))
   expect_equal(ids(ds_collapsed), c("id1", "variable"))
   expect_equal(ds_collapsed$id1, c(1, 2))
   expect_equal(ds_collapsed$variable, c("x", "y"))
@@ -137,7 +134,7 @@ test_that("dataset_valid stops on duplicates", {
     val = 10:11,
     stringsAsFactors = FALSE
   )
-  ds_dup <- set_attr(df_dup, c("id1", "variable"), "variable", "wide", TRUE)
+  ds_dup <- set_attr(df_dup, c("id1", "variable"), "variable", "wide")
   expect_error(dataset_valid(ds_dup), "ids do not uniquely identify rows")
 })
 

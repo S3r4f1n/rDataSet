@@ -101,6 +101,7 @@ dataset_get_composed <- function(ds, index) {
 }
 
 # strategy hirarchical / in order of ids
+#' @export
 hirarchical_paths <- function(dataset) {
   idc <- id_cols(dataset)
   id_ids <- purrr::accumulate(idc, c)
@@ -114,6 +115,7 @@ hirarchical_paths <- function(dataset) {
 #' the earlier it is used for the decomposition. later paths might
 #' not be used at all. exponential time in number of id columns. But these
 #' should be generaly only a few (up to 10 different ids)
+#' @export
 efficient_paths <- function(dataset) {
   idc <- id_cols(dataset)
 
@@ -136,6 +138,7 @@ efficient_paths <- function(dataset) {
 # ok this is a functional mess but works
 # first add ids, and then you get a function
 # which expects dataset selected_paths_builder(ids)(dataset)
+#' @export
 selected_paths_builder <- function(ids) {
   function(dataset) {
     idc <- id_cols(dataset)
