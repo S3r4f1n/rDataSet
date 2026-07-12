@@ -141,6 +141,7 @@ selected_paths_builder <- function(ids) {
     idc <- id_cols(dataset)
 
     id_plan <- list(intersect(ids, idc), setdiff(idc, ids), idc)
+    id_plan <- id_plan[lengths(id_plan) > 0]
     id_paths <- purrr::map(
       id_plan,
       ~ purrr::reduce(dataset %>% select(all_of(.x)), paste0)

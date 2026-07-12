@@ -11,8 +11,11 @@ wide_to_long <- function(dataset) {
   }
 
   if (is_empty_set(dataset)) {
-    attr(dataset, "dataset_state") <- "long"
-    return(dataset)
+    dataset <- bind_cols(
+      dataset,
+      tibble(variable = character(0), value = list())
+    )
+    return(set_attr(dataset, ids(dataset), NULL, state = "long"))
   }
 
   # conversion
@@ -35,8 +38,8 @@ long_to_wide <- function(dataset, col = NULL) {
   }
 
   if (is_empty_set(dataset)) {
-    attr(dataset, "dataset_state") <- "wide"
-    return(dataset)
+    dataset <- select(dataset, -all_of(c("variable", "value")))
+    return(set_attr(dataset, ids(dataset), "variable", "wide"))
   }
 
   ids <- ids(dataset)

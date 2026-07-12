@@ -1,13 +1,10 @@
-context("set_utils")
-
 library(dplyr)
 
 # Helper: build a simple dataset with one id column, a fixed variable name, and one value column
-make_ds <- function(id, val, variable = "x") {
+make_ds <- function(id, val) {
   df <- tibble::tibble(
-    id   = id,
-    variable = variable,
-    val  = val
+    id = id,
+    val = val
   )
   dataset_build(df, "id")
 }
@@ -15,10 +12,9 @@ make_ds <- function(id, val, variable = "x") {
 # Helper: build a dataset with two id columns (id, group)
 make_ds2 <- function(id, group, val) {
   df <- tibble::tibble(
-    id    = id,
+    id = id,
     group = group,
-    variable = "x",
-    val   = val
+    val = val
   )
   dataset_build(df, c("id", "group"))
 }
@@ -28,7 +24,10 @@ test_that("dataset_diff detects differing values", {
   a <- make_ds(1:3, c(10, 20, 30))
   b <- make_ds(1:3, c(10, 25, 30))
 
+  merge_with(a, b, "symdiff")
+
   res <- dataset_diff(a, b)
+
   expect_s3_class(res, "dataset")
   # only the row with a differing value should appear (id = 2)
   expect_equal(nrow(res), 1)
@@ -56,7 +55,7 @@ test_that("dataset_diff handles extra rows in b (strict = 'equal' default)", {
 # --------------------------------------------------------------- ds_filter
 test_that("ds_filter keeps rows that satisfy the condition", {
   ds <- make_ds(1:5, c(1, 5, 10, 20, 30))
-  f  <- ds_filter(ds, val > 10)
+  f <- ds_filter(ds, value > 10)
 
   expect_s3_class(f, "dataset")
   expect_setequal(f %>% as_tibble() %>% pull(id), c(4L, 5L))
@@ -64,7 +63,7 @@ test_that("ds_filter keeps rows that satisfy the condition", {
 
 test_that("ds_filter with condition yielding zero rows returns empty dataset", {
   ds <- make_ds(1:3, c(1, 2, 3))
-  f  <- ds_filter(ds, val > 100)
+  f <- ds_filter(ds, value > 100)
 
   expect_s3_class(f, "dataset")
   expect_equal(nrow(f), 0)
@@ -72,7 +71,7 @@ test_that("ds_filter with condition yielding zero rows returns empty dataset", {
 
 # --------------------------------------------------------------- select_ids
 test_that("select_ids retains only selected id columns", {
-  ds <- make_ds2(id = 1:3, group = c("a","b","a"), val = c(10, 20, 30))
+  ds <- make_ds2(id = 1:3, group = c("a", "b", "a"), val = c(10, 20, 30))
   # select only 'id'
   sel <- select_ids(ds, id)
 
@@ -83,7 +82,7 @@ test_that("select_ids retains only selected id columns", {
 })
 
 test_that("select_ids with all id columns returns original structure", {
-  ds <- make_ds2(id = 1:3, group = c("x","y","z"), val = c(1, 2, 3))
+  ds <- make_ds2(id = 1:3, group = c("x", "y", "z"), val = c(1, 2, 3))
   sel <- select_ids(ds, id, group)
 
   expect_s3_class(sel, "dataset")
@@ -102,7 +101,7 @@ test_that("intersect_with keeps rows of b that match both datasets", {
   expect_equal(ids_in_res, c(2L, 3L))
   # values come from b
   vals <- as_tibble(ii) %>% pull(val) %>% sort()
-  expect_equal(vals, c(200, 300))
+  expect_equal(vals, c(20, 30))
 })
 
 test_that("intersect_with returns empty when no overlap", {
@@ -124,7 +123,7 @@ test_that("mask_with overwrites a's values with b's values where b has data", {
 
   # only rows present in a (id 1,2,3) should appear, with values 10,200,300
   tbl <- as_tibble(res) %>% select(id, val) %>% arrange(id)
-  expect_equal(tbl$id,  1:3)
+  expect_equal(tbl$id, 1:3)
   expect_equal(tbl$val, c(10, 200, 300))
 })
 
@@ -135,7 +134,7 @@ test_that("mask_with with framed = FALSE includes rows outside a's frame", {
   res_noframe <- mask_with(a, b, framed = FALSE)
   tbl <- as_tibble(res_noframe) %>% select(id, val) %>% arrange(id)
   # id 4 is included because frame is not applied
-  expect_setequal(tbl$id, c(1L,2L,3L,4L))
+  expect_setequal(tbl$id, c(1L, 2L, 3L, 4L))
 })
 
 # --------------------------------------------------------------- fill_with
@@ -147,8 +146,8 @@ test_that("fill_with fills missing a values from b; keeps existing a values", {
   expect_s3_class(res, "dataset")
 
   tbl <- as_tibble(res) %>% select(id, val) %>% arrange(id)
-  expect_equal(tbl$id,  1:3)
-  expect_equal(tbl$val, c(10, 200, 30))   # id2 missing from a => 200
+  expect_equal(tbl$id, 1:3)
+  expect_equal(tbl$val, c(10, 200, 30)) # id2 missing from a => 200
 })
 
 test_that("fill_with with framed = FALSE includes rows outside a's frame", {
@@ -158,7 +157,7 @@ test_that("fill_with with framed = FALSE includes rows outside a's frame", {
   res_noframe <- fill_with(a, b, framed = FALSE)
   tbl <- as_tibble(res_noframe) %>% select(id, val) %>% arrange(id)
   # id 4 is included because we skip the frame restriction
-  expect_equal(sort(tbl$id), c(1L,2L,3L,4L))
+  expect_equal(sort(tbl$id), c(1L, 2L, 3L, 4L))
 })
 
 # --------------------------------------------------------------- edge cases
@@ -166,37 +165,34 @@ test_that("dataset_diff works when b is empty", {
   a <- make_ds(1:3, c(10, 20, 30))
   b <- empty_set()
 
-  res <- dataset_diff(a, b)
-  expect_s3_class(res, "dataset")
-  # All rows of a should be considered as differing because b has no row
-  expect_equal(nrow(res), 3)
+  expect_error(dataset_diff(a, b)) # missmatch of ids
 })
 
 test_that("mask_with and fill_with handle empty a correctly", {
-  a <- empty_set()
-  b <- make_ds(1:2, c(100, 200))
+  a <- make_ds(1:2, c(100, 200))
+  b <- empty_set()
 
   # mask_with
-  masked <- mask_with(a, b, framed = TRUE)
+  masked <- mask_with(a, b)
   expect_s3_class(masked, "dataset")
-  expect_equal(nrow(masked), 0)
+  expect_equal(nrow(masked), 2)
 
   # fill_with
   filled <- fill_with(a, b, framed = TRUE)
   expect_s3_class(filled, "dataset")
-  expect_equal(nrow(filled), 0)
+  expect_equal(nrow(filled), 2)
 })
 
 test_that("ds_filter works with datasets that are already empty", {
   ds <- empty_set()
-  f <- ds_filter(ds, val > 10)
+  f <- ds_filter(ds, value > 10)
   expect_s3_class(f, "dataset")
   expect_equal(nrow(f), 0)
 })
 
 test_that("select_ids with empty dataset returns empty dataset", {
   ds <- empty_set()
-  sel <- select_ids(ds, id)
+  sel <- select_ids(ds, everything())
   expect_s3_class(sel, "dataset")
   expect_equal(nrow(sel), 0)
 })

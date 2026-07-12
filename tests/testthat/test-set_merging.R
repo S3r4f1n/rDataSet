@@ -56,7 +56,7 @@ test_that("combine_datasets errors when ids are not in strict", {
 
   expect_error(
     combine_datasets(a, b, strict = "equal"),
-    "ids should be one of: equal"
+    "ids should be equal"
   )
 })
 
@@ -70,7 +70,7 @@ test_that("combine_datasets respects strict = greater", {
 
   expect_error(
     combine_datasets(a, b, strict = c("equal", "greater")),
-    "ids should be one of: equal, greater"
+    "ids should be equal or greater"
   )
 })
 

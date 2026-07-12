@@ -9,7 +9,7 @@ dataset_diff <- function(
   strict = "equal"
 ) {
   combine_datasets(a, b, strict = strict, "left", "right") %>%
-    filter(xor(is.na(left), is.na(right)) | left != right) %>%
+    filter(xor(is.na(left), is.na(right)) | mapply(`!=`, left, right)) %>%
     set_attr(., ids(.), "source", state = "wide")
 }
 
@@ -38,7 +38,7 @@ intersect_with <- function(a, b) {
   merge_with(
     a,
     b,
-    set_op = "right",
+    set_op = "intersect",
     prec = "left",
     strict = c("equal", "greater"),
     keep = FALSE

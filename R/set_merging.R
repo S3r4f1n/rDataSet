@@ -34,9 +34,9 @@ combine_datasets <- function(
 
   if (!(cmp %in% strict)) {
     stop(
-      "ids should be one of: ",
-      paste(strict, collapse = ", "),
-      " but is: ",
+      "ids should be ",
+      paste(strict, collapse = " or "),
+      ". But is: ",
       cmp,
       "\nids a: ",
       paste(ids(a), collapse = ", "),
