@@ -100,7 +100,26 @@ dataset_get_composed <- function(ds, index) {
   set_attr(out, ids, x_axis(ds), "wide")
 }
 
-# strategy hirarchical / in order of ids
+#' Hierarchical decomposition paths
+#'
+#' Creates a plan for decomposing a dataset by accumulating ID columns
+#' in the order they appear. The resulting paths are used by
+#' [dataset_decompose()] to split the dataset into smaller tables.
+#'
+#' @param dataset A dataset object in wide format.
+#' @return A tibble with two columns: `ids` (list of character vectors)
+#'   and `paths` (list of character vectors). Each row corresponds to a
+#'   level of the hierarchy.
+#' @seealso [efficient_paths()], [selected_paths_builder()], [dataset_decompose()]
+#' @examples
+#' \dontrun{
+#' library(rDataSet)
+#' ds <- dataset_build(
+#'   tibble::tibble(id = 1:2, group = c("x","y"), value = 1:2),
+#'   ids = c("id","group")
+#' )
+#' hirarchical_paths(ds)
+#' }
 #' @export
 hirarchical_paths <- function(dataset) {
   idc <- id_cols(dataset)
@@ -109,12 +128,28 @@ hirarchical_paths <- function(dataset) {
   tibble(ids = id_ids, paths = paths)
 }
 
-#' this creates all combinations of id paths and arranges them
-#' by the number of distinct values in a path (lower to more) and
-#' by the number of ids cols in a path. The higher up in the list
-#' the earlier it is used for the decomposition. later paths might
-#' not be used at all. exponential time in number of id columns. But these
-#' should be generaly only a few (up to 10 different ids)
+#' Efficient decomposition paths
+#'
+#' Generates all possible combinations of ID columns and orders them
+#' by the number of distinct values (fewer first) and the number of
+#' ID columns. This strategy can produce a more compact decomposition
+#' but runs in exponential time with respect to the number of ID columns.
+#' Use only when the number of ID columns is small (typically ≤ 10).
+#'
+#' @param dataset A dataset object in wide format.
+#' @return A tibble with columns `ids` (list of character vectors) and
+#'   `paths` (list of character vectors), sorted by increasing
+#'   distinctness and ID count.
+#' @seealso [hirarchical_paths()], [selected_paths_builder()], [dataset_decompose()]
+#' @examples
+#' \dontrun{
+#' library(rDataSet)
+#' ds <- dataset_build(
+#'   tibble::tibble(id = 1:2, group = c("x","y"), value = 1:2),
+#'   ids = c("id","group")
+#' )
+#' efficient_paths(ds)
+#' }
 #' @export
 efficient_paths <- function(dataset) {
   idc <- id_cols(dataset)
@@ -135,9 +170,29 @@ efficient_paths <- function(dataset) {
     select(ids = id_plan, paths = id_paths)
 }
 
-# ok this is a functional mess but works
-# first add ids, and then you get a function
-# which expects dataset selected_paths_builder(ids)(dataset)
+#' Build a custom decomposition strategy
+#'
+#' Returns a function that, when applied to a dataset, creates a
+#' decomposition plan where the specified IDs are used first,
+#' followed by the remaining IDs, and finally all IDs together.
+#' This allows you to prioritise certain ID columns during
+#' decomposition.
+#'
+#' @param ids Character vector of ID column names to prioritise.
+#' @return A function that takes a dataset and returns a tibble
+#'   with columns `ids` and `paths`, suitable for use as the
+#'   `strategy` argument of [dataset_decompose()].
+#' @seealso [hirarchical_paths()], [efficient_paths()], [dataset_decompose()]
+#' @examples
+#' \dontrun{
+#' library(rDataSet)
+#' ds <- dataset_build(
+#'   tibble::tibble(id = 1:2, group = c("x","y"), value = 1:2),
+#'   ids = c("id","group")
+#' )
+#' strat <- selected_paths_builder("group")
+#' strat(ds)
+#' }
 #' @export
 selected_paths_builder <- function(ids) {
   function(dataset) {
