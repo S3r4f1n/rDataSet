@@ -77,6 +77,8 @@ devtools::install("/path/to/rDataSet")
 install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 ```
 
+# insert here a chapter about the three representations, long, wide, decomposed AI!
+
 ## Set Operations
 
 Set Operations look really cool, but I'm pivoting away from using operators like `+` as documentation of these functions is hard, and it is impossible to set any flags. Similar goals can be achieved with pipe-style operations like `|> mask_with()` which is more readable, allows for altering behavior through flags, and can be documented. All functionalities from below are captured in `merge_with` with the appropriate flags.
@@ -102,8 +104,6 @@ Each set operation works in two stages:
 ## Exported Functions
 
 The following functions are exported from the rDataSet package:
-
-# the following chapter should cover the exports in the order shown below and have some additional description and explanation AI!
 
 - `dataset_build`: Builds a dataset object from a data frame and a vector of identifier column names. This function creates a properly formatted dataset object with metadata about the identifier columns, value columns, and the dataset's current state (wide, long, or decomposed). It ensures that the identifier columns uniquely identify each row.
 
