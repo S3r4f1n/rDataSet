@@ -18,9 +18,9 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left, from right, or apply some other function to merge the two (perhaps disallowing this function thing since we never know what type of data we need to merge; left/right is the only safe function).
+rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left or from right.
 
-I have the fear that this actually just could be a join with some merge function, and that all the other blabber is for nothing. Well, I still think that masking is a nice feature, and dropping IDs seems really cool. But we might actually reduce the whole thing to `ids_by` functions similar to `group_by`.
+I have the fear that this actually just could be a join with some merge function, and that all the other blabber is for nothing. Well, I still think that masking is a nice feature, and dropping IDs seems really cool. But we might actually reduce the whole thing to `ids_by` functions similar to `group_by`. This hints at a neat feature to include a "ids" parameter into the merge_with function such that dataset creation becomes obsolete for the most part.
 
 - Writing datasets as readable text files. (maybe its own project -> its own project)
 - Having piped data control e.g. through hashing (identity), or less restrictive measures, e.g. through a mask with catch-all behavior. (certainly its own project)
@@ -102,6 +102,17 @@ Each set operation works in two stages:
 ## Exported Functions
 
 The following functions are exported from the rDataSet package:
+
+# the following chapter shoud cover the exports in the order shown below and have some additional descrription and explanantion AI!
+export(empty_set)
+export(merge_with)
+export(mask_with)
+export(fill_with)
+export(intersect_with)
+export(select_ids)
+export(to_decomposed)
+export(to_long)
+export(to_wide)
 
 - `dataset_build`: Builds a dataset object from a data frame and a vector of identifier column names.
 - `dataset_collapse`: Removes rows and columns that contain only missing values (`NA`).
