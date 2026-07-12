@@ -20,6 +20,7 @@ knitr::opts_chunk$set(
 
 rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left or from right.
 
+# convert these thoughts into a road map for this project (ids parameter) and other projects AI!
 I have the fear that this actually just could be a join with some merge function, and that all the other blabber is for nothing. Well, I still think that masking is a nice feature, and dropping IDs seems really cool. But we might actually reduce the whole thing to `ids_by` functions similar to `group_by`. This hints at a neat feature to include a "ids" parameter into the merge_with function such that dataset creation becomes obsolete for the most part.
 
 - Writing datasets as readable text files. (maybe its own project -> its own project)
