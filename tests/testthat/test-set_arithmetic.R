@@ -1,3 +1,5 @@
+require(dplyr)
+
 test_that("dataset_minus works with basic case", {
   # Create test datasets
   a <- dataset_build(

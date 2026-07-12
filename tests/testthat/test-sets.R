@@ -1,4 +1,5 @@
-library(testthat)
+require(testthat)
+require(dplyr)
 
 test_that("dataset_build with valid inputs", {
   df <- data.frame(

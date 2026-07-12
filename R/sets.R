@@ -28,7 +28,6 @@ dataset_build <- function(df, ids) {
 #' @param ids ID columns.
 #' @param x_axis X-axis column.
 #' @param state Dataset state.
-#' @internal
 set_attr <- function(df, ids, x_axis, state) {
   attr(df, "dataset_ids") <- ids
   attr(df, "dataset_x_axis") <- x_axis

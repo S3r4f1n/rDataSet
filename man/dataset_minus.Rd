@@ -3,7 +3,7 @@
 \name{dataset_minus}
 \alias{dataset_minus}
 \alias{-.dataset}
-\title{Set Difference}
+\title{Set difference (a - b)}
 \usage{
 dataset_minus(a, b)
 
@@ -15,24 +15,9 @@ dataset_minus(a, b)
 \item{b}{A dataset object (subtrahend).}
 }
 \value{
-A dataset containing values from \code{a} where corresponding values in \code{b} are \code{NA}.
+A dataset containing only values from \code{a} where \code{b} is \code{NA}.
 }
 \description{
-Returns values from dataset \code{a} that are not present in dataset \code{b}.
-A value is considered present if it is not \code{NA}.
+Returns cells from \code{a} that are missing (or differ) in \code{b}.
+Under the hood this is a \code{setdiff} merge with left precedence.
 }
-\details{
-\strong{Row/Column Handling:}
-\itemize{
-\item \strong{Rows:} All rows from \code{a} are retained (left join on ID columns)
-\item \strong{Columns:} Only value columns that exist in both datasets are considered; ID columns must match
-}
-
-\strong{Value Operation:}
-\itemize{
-\item For each cell at (row_id, col_id), the value from \code{a} is kept only if the corresponding cell in \code{b} is \code{NA}
-}
-
-Error if ID columns of \code{a} and \code{b} do not match.
-}
-\keyword{internal}

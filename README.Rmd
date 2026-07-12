@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 <!-- badges: end -->
+Note: Several parts of the Documentation have been written by AI and do contain mistakes.
 
 rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely identify each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from the left or from the right dataset.
 
@@ -43,9 +44,6 @@ dataset %>%
 # selected id cols will remain in the dataset.
 dataset %>%
   select_ids(-id) # tidy select on ids
-
-dataset %>%
-  dataset_flatten()
 ```
 
 ```R
@@ -111,48 +109,24 @@ Each set operation works in two stages:
 The following functions are exported from the rDataSet package:
 
 - `dataset_build`: Builds a dataset object from a data frame and a vector of identifier column names. This function creates a properly formatted dataset object with metadata about the identifier columns, value columns, and the dataset's current state (wide, long, or decomposed). It ensures that the identifier columns uniquely identify each row.
-
-- `dataset_collapse`: Removes rows and columns that contain only missing values (`NA`). This function helps clean up datasets by eliminating empty rows and columns, making the dataset more concise and easier to work with.
-
-- `dataset_compose`: Composes a list of datasets into a wide format dataset. Takes a list of decomposed datasets and combines them back into a wide format dataset, effectively reversing the decomposition process.
-
-- `dataset_decompose`: Decomposes a wide or long dataset into a list of child datasets. This function breaks down complex datasets into simpler components based on hierarchical paths defined by the identifier columns, making it easier to analyze specific parts of the dataset.
-
-- `dataset_diff`: Compares two datasets cell-by-cell and returns only rows where they differ. This function is useful for identifying changes between different versions of datasets or comparing datasets for discrepancies.
-
-- `dataset_equality`: Compares two datasets cell-by-cell and returns `TRUE` if they are identical. This function provides a simple way to verify that two datasets contain exactly the same data.
-
-- `dataset_frame`: Creates a copy of the dataset where every value is replaced by `TRUE`. This function is useful for creating a logical representation of a dataset that shows which cells contain valid data.
-
-- `dataset_intersect`: Keeps cells from the first dataset that also exist in the second. This operation is particularly useful when you want to find common elements between two datasets.
-
-- `dataset_minus`: Returns cells from the first dataset that are missing (or differ) in the second. This function finds the difference between datasets, specifically items that exist in the first dataset but not in the second.
-
-- `dataset_union`: Returns all cells present in either dataset, giving precedence to the first. This operation allows combining datasets while prioritizing values from the first dataset when conflicts occur.
-
-- `dataset_transfrom`: Converts a dataset to a given state (wide, long, decomposed). This versatile function provides an easy way to change the structure of datasets between different formats depending on the analysis needs.
-
-- `ds_filter`: Applies a conjunction of **dplyr** filter expressions to the dataset. This function allows filtering datasets using standard dplyr syntax while maintaining the dataset's structure and metadata.
-
 - `empty_set`: Returns a dataset with zero rows and zero ID columns. This utility function creates a blank dataset that can be used as a starting point or placeholder in various operations.
-
-- `fill_with`: Replaces `NA` cells in one dataset with values from another. This function is helpful when you have partially filled datasets and want to supplement missing values with data from another source.
-
-- `intersect_with`: Keeps only the cells in the first dataset for which there is a corresponding non-`NA` cell in the second. This operation focuses on maintaining only the overlapping valid data between two datasets.
-
-- `long_to_wide`: Converts a dataset from long format to wide format. This function reshapes datasets from a long format (where each row represents a single observation) to a wide format (where multiple observations are represented in columns).
-
-- `mask_with`: Keeps only the cells in the first dataset that are also present in the second. This function acts like a mask, preserving only the data points that exist in both datasets.
-
-- `merge_with`: Combines two datasets using a flexible set operation and precedence rule. This is the core function that enables all dataset operations, allowing users to specify which set operation to perform and how to handle conflicts between datasets.
-
 - `select_ids`: Keeps only the rows associated with the specified identifier columns. This function allows selective filtering of datasets based on identifier values using tidy selection syntax.
-
+- `merge_with`: Combines two datasets using a flexible set operation and precedence rule. This is the core function that enables all dataset operations, allowing users to specify which set operation to perform and how to handle conflicts between datasets.
+- `mask_with`: Keeps only the cells in the first dataset that are also present in the second. This function acts like a mask, preserving only the data points that exist in both datasets.
+- `fill_with`: Replaces `NA` cells in one dataset with values from another. This function is helpful when you have partially filled datasets and want to supplement missing values with data from another source.
+- `intersect_with`: Keeps only the cells in the first dataset for which there is a corresponding non-`NA` cell in the second. This operation focuses on maintaining only the overlapping valid data between two datasets.
 - `to_decomposed`: Converts a dataset to decomposed format. This function transforms a dataset into a hierarchical structure where it's broken down into smaller, manageable pieces based on identifier relationships.
-
 - `to_long`: Converts a dataset to long format. This operation reshapes datasets from wide format to long format, making it easier to perform certain types of analyses.
-
 - `to_wide`: Converts a dataset to wide format. This is the inverse of `to_long`, reshaping datasets from long format back to wide format.
+- `dataset_diff`: Compares two datasets cell-by-cell and returns only rows where they differ. This function is useful for identifying changes between different versions of datasets or comparing datasets for discrepancies.
+- `dataset_collapse`: Removes rows and columns that contain only missing values (`NA`). This function helps clean up datasets by eliminating empty rows and columns, making the dataset more concise and easier to work with.
+- `dataset_frame`: Creates a copy of the dataset where every value is replaced by `TRUE`. This function is useful for creating a logical representation of a dataset that shows which cells contain valid data.
+- `dataset_transfrom`: Converts a dataset to a given state (wide, long, decomposed). This versatile function provides an easy way to change the structure of datasets between different formats depending on the analysis needs.
+- `ds_filter`: Applies a conjunction of **dplyr** filter expressions to the dataset. This function allows filtering datasets using standard dplyr syntax while maintaining the dataset's structure and metadata.
+- `dataset_equality`: Compares two datasets cell-by-cell and returns `TRUE` if they are identical. This function provides a simple way to verify that two datasets contain exactly the same data.
+- `dataset_intersect`: Keeps cells from the first dataset that also exist in the second. This operation is particularly useful when you want to find common elements between two datasets.
+- `dataset_minus`: Returns cells from the first dataset that are missing (or differ) in the second. This function finds the difference between datasets, specifically items that exist in the first dataset but not in the second.
+- `dataset_union`: Returns all cells present in either dataset, giving precedence to the first. This operation allows combining datasets while prioritizing values from the first dataset when conflicts occur.
 
 ## License
 

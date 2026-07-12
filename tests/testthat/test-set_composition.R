@@ -1,4 +1,5 @@
-library(testthat)
+require(testthat)
+require(dplyr)
 
 test_that("dataset_compose works with empty dataset", {
   # Test empty dataset composition

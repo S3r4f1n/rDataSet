@@ -1,4 +1,4 @@
-library(dplyr)
+require(dplyr)
 
 #' Difference between two datasets
 #'

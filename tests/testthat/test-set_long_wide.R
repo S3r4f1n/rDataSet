@@ -1,6 +1,6 @@
-library(testthat)
-library(dplyr)
-library(tidyr)
+require(testthat)
+require(dplyr)
+require(tidyr)
 
 test_that("wide_to_long works with empty dataset", {
   # Test empty dataset conversion

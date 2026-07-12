@@ -3,45 +3,21 @@
 \name{dataset_equality}
 \alias{dataset_equality}
 \alias{==.dataset}
-\title{Set Equality}
+\title{Test equality of two datasets}
 \usage{
 dataset_equality(a, b)
 
 \method{==}{dataset}(a, b)
 }
 \arguments{
-\item{a}{A dataset object (left operand).}
+\item{a}{A dataset object.}
 
-\item{b}{A dataset object (right operand).}
+\item{b}{A dataset object.}
 }
 \value{
-\code{TRUE} if datasets are identical, \code{FALSE} otherwise.
+\code{TRUE} if the datasets are identical, \code{FALSE} otherwise.
 }
 \description{
-Compares two datasets cell-by-cell and returns \code{TRUE} if they are identical,
-\code{FALSE} otherwise. This is a strict equality check that requires both datasets
-to have the same structure and values.
+Compares two datasets cell-by-cell, including ID columns and value
+columns. Issues a warning if value columns differ.
 }
-\details{
-\strong{Comparison Criteria:}
-\itemize{
-\item \strong{ID Columns:} Must match exactly (same names and values)
-\item \strong{Value Columns:} Must have the same column names
-\item \strong{Rows:} Must have the same rows (by ID)
-\item \strong{Values:} All corresponding cells must have identical values
-}
-
-\strong{Value Comparison:}
-\itemize{
-\item Both cells must have equal non-\code{NA} values for a match
-\item A mismatch occurs if one cell is \code{NA} and the other is not
-\item If both cells are \code{NA}, they are considered equal
-}
-
-This function implements strict mathematical set equality:
-\code{a == b} iff \verb{a ⊆ b} and \verb{b ⊆ a}. Unlike element-wise comparison
-operators, this returns a single boolean value. Throws an error if
-ID columns do not match; returns \code{FALSE} with warnings for other
-mismatches (columns, rows, or values).
-}
-\keyword{internal}

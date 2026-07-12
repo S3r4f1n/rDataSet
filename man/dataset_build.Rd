@@ -2,32 +2,20 @@
 % Please edit documentation in R/sets.R
 \name{dataset_build}
 \alias{dataset_build}
-\title{Build a Dataset from a Data Frame}
+\title{Create a dataset}
 \usage{
 dataset_build(df, ids)
 }
 \arguments{
-\item{df}{A data frame to convert into a dataset.}
+\item{df}{A data frame containing identifier and value columns.}
 
-\item{ids}{A character vector specifying the names of ID columns.}
+\item{ids}{Character vector of column names that define the unique row
+identifier(s). Must not include the future value axis column.}
 }
 \value{
-A dataset object with the specified ID columns.
+A dataset object (in wide format).
 }
 \description{
-Constructs a dataset object from a regular data frame by setting the
-ID columns and initializing the dataset attributes.
+Builds a dataset object from a data frame and a vector of identifier
+column names. The resulting dataset is stored in wide format by default.
 }
-\details{
-\strong{Initialization:}
-\itemize{
-\item Sets the \code{dataset_ids} attribute to specify which columns are ID columns
-\item Sets the \code{dataset_state} attribute to "wide"
-\item Adds "dataset" to the class vector
-\item Automatically collapses the dataset to remove empty rows/columns
-}
-
-The ID columns must uniquely identify each row. The function
-validates this constraint via \code{dataset_integrity()} during collapse.
-}
-\keyword{internal}

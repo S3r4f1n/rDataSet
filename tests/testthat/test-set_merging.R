@@ -1,5 +1,5 @@
-library(dplyr)
-library(testthat)
+require(dplyr)
+require(testthat)
 
 # helper to replicate combine_datasets' NULL‑to‑NA logic
 replace_nulls <- function(x) {

@@ -1,4 +1,4 @@
-library(dplyr)
+require(dplyr)
 
 #' Set difference (a - b)
 #'

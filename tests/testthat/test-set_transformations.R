@@ -1,5 +1,5 @@
-library(testthat)
-library(dplyr)
+require(testthat)
+require(dplyr)
 
 test_that("to_wide preserves wide datasets", {
   df <- tibble::tibble(id = 1:2, height = c(10, 20), weight = c(100, 200))

@@ -1,4 +1,4 @@
-library(dplyr)
+require(dplyr)
 
 # Helper: build a simple dataset with one id column, a fixed variable name, and one value column
 make_ds <- function(id, val) {

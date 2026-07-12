@@ -21,7 +21,6 @@ replace_nulls_with_na <- function(x) {
 #' @param left_name Name for left values.
 #' @param right_name Name for right values.
 #' @return A dataframe in the internal `"scuffed_long"` format.
-#' @internal
 combine_datasets <- function(
   a,
   b,
@@ -69,7 +68,6 @@ combine_datasets <- function(
 #' @param prc Precedence rule.
 #' @return A function that takes two value vectors and returns the merged
 #'   vector.
-#' @internal
 merge_func <- function(
   op = c("left", "right", "setdiff", "symdiff", "intersect", "union"),
   prc = c("left", "right")
