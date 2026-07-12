@@ -110,8 +110,10 @@ dataset_valid <- function(ds) {
 print.dataset <- function(x, ...) {
   ids <- ids(x)
   val_cols <- val_cols(x)
+  state <- state(x)
 
   cat("Dataset\n")
+  cat("State:", state, "\n")
   cat("IDs:", paste(ids, collapse = ", "), "\n")
   cat("Value columns:", paste(val_cols, collapse = ", "), "\n\n")
 
