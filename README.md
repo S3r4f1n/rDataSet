@@ -7,15 +7,70 @@
 
 <!-- badges: end -->
 
-The goal of rDataSet is to treat data frames as mathematical sets. It
-provides set-theoretic operations (union, intersection, difference,
-equality) for data frames where values are identified by row IDs and
-column names, and presence/absence is determined by `NA` values.
+Note: Several parts of the Documentation have been written by AI and do
+contain mistakes.
 
-On top of Operations, Datasets support writing and reading to json, toml
-files. With the goal of having humand readable Data represntations which
-don’t relay on table represnataions. (as there is a lack of decent
-diffing and viewing for such data, at least thats how i perceive it)
+rDataSet introduces a new S3-style dataset object. A dataset is nothing
+more than a tibble with identifier columns. The identifier columns, like
+in a relational database, must uniquely identify each row. Instead of
+following the path of relational databases, the focus here is on dataset
+merging. Merging in this context means we have two datasets with some
+overlapping domain and we want to get a single dataset as output. When
+merging we have three distinct parts: the rows only present in the left
+side, the intersection, and the rows only present on the right side. For
+each we can decide whether we want to keep them in the result. Further,
+we have to decide for the intersection whether we take the values from
+the left or from the right dataset.
+
+One major usability improvement planned for the future is adding an
+`ids` parameter to functions like `merge_with()`, so that datasets no
+longer need to be built up front. This would allow merges directly on
+tibbles or data frames, removing the need to explicitly create dataset
+objects in the first place.
+
+Further ideas that came up during the creation of this project include a
+readable text representation of data that builds upon the decomposed
+dataset structure, and some form of dataset version control. The latter
+could be built using masking and patches — where patches are essentially
+diff logs of datasets that can be applied and reversed.
+
+An application of the dataset might look like this:
+
+``` r
+# our original dataset containing our animals and some mistakes
+dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", NA), vals2 = c("animal", "animal", "other", "other")) %>%
+  dataset_build(ids = c("id", "id2"))
+
+# in fact we have two cats. instead of recoding directly in the data we create a patch
+patch <- tibble(id2 = 2:3, vals = c("cat", "dog")) %>%
+  dataset_build(ids = c("id2"))
+
+# and mask the wrong data with the patch
+dataset %>%
+  mask_with(patch)
+
+# another fancy thing is to drop id columns
+# only value columns which are functionally dependent on the
+# selected id cols will remain in the dataset.
+dataset %>%
+  select_ids(-id) # tidy select on ids
+```
+
+``` r
+# we can merge two datasets with a set operation and specifying a precedence
+# empty values are dropped by default.
+dataset %>%
+  merge_with(patch, set_op = "setdiff", prec = "left")
+
+dataset %>%
+  merge_with(patch, set_op = "left", prec = "right")
+
+dataset %>%
+  merge_with(patch, set_op = "intersect", prec = "left", keep = TRUE)
+
+dataset %>%
+  merge_with(patch, set_op = "union", prec = "left")
+```
 
 ## Installation
 
@@ -28,20 +83,53 @@ devtools::install("/path/to/rDataSet")
 install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 ```
 
-## Overview
+## Dataset Representations
 
-rDataSet introduces a `dataset` S3 class that extends data frames with
-designated ID columns. Set operations work on a cell-by-cell basis:
+A dataset can be represented in three forms: wide, long, and decomposed.
+Each conversion is almost lossless — the one notable exception is that
+numbers used as the x-axis may be coerced to characters during
+transformation. The three formats are:
 
-- **ID columns** uniquely identify each row (one-to-one relation)
-- **Value presence** is determined by `is.na()` - a value is present if
-  not `NA`
-- **Set operations** compare cells at the same (row_id, col_id) position
-- **Empty rows are dropped** - rows containing only `NA` values in all
-  value columns are considered non-existent and are automatically
-  removed during dataset construction
+1.  **Wide format** is the most common representation and the default.
+    It is essentially just a tibble with some metadata identifying which
+    columns are IDs and which are values. Each row represents a unique
+    combination of ID values.
+
+2.  **Long format** is what you get when you treat the value column
+    names as an additional identifier — the last ID so to speak. All IDs
+    are written as columns and there is a single `variable` column and a
+    single `value` column. This format is the driving force behind the
+    merge algorithms in this library, as it makes it straightforward to
+    align and compare datasets cell by cell. It is also very useful for
+    inspecting differences — `dataset_diff()` for example returns its
+    result in long format. When converting back to wide, you can
+    optionally choose which ID to use as the x-axis.
+
+3.  **Decomposed format** is obtained by splitting the dataset into a
+    list of smaller tables. Each table contains a subset of the IDs and
+    only the value columns that are functionally dependent on those IDs
+    — meaning no information is lost when joining the tables back
+    together. This is essentially a lossless join decomposition. It is
+    particularly useful when a dataset contains information at multiple
+    levels of granularity. For example, if a dataset contains both
+    person-level and household-level variables, you can select the
+    household ID and get back a smaller table containing only the
+    variables that are uniquely determined by the household — without
+    having to manually specify which columns those are.
 
 ## Set Operations
+
+Set Operations look really cool, but I’m pivoting away from using
+operators like `+` as documentation of these functions is hard, and it
+is impossible to set any flags. Similar goals can be achieved with
+pipe-style operations like `|> mask_with()` which is more readable,
+allows for altering behavior through flags, and can be documented. All
+functionalities from below are captured in `merge_with` with the
+appropriate flags.
+
+- `+` `merge_with(a,b, set_op = "union", "left")`
+- `-` `merge_with(a,b, set_op = "setdiff", "left")`
+- `>` `merge_with(a,b, set_op = "intersect", "left")`
 
 Each set operation works in two stages:
 
@@ -54,284 +142,84 @@ Each set operation works in two stages:
 | Difference (`A - B`) | All rows from A | All value columns from A | Keep values from A where B has `NA` |
 | Intersection (`A > B`) | Only rows present in **both** A and B (inner join on IDs) | Only common value columns | Keep values from A where B has non-`NA` |
 | Union (`A + B`) | All rows from both A and B (full join on IDs) | All value columns from both | Use A’s value; fall back to B where A has `NA` |
-| Equality (`A == B`) | Must match exactly (same rows) | Must match exactly (same columns) | `TRUE` if equal, `FALSE` if different, `NA` if both missing |
+| Equality (`A == B`) | Must match exactly (same rows) | Must match exactly (same columns) | Must match exactly (same value) |
 
 **Note**: ID columns must match between datasets for all operations.
 Value columns that exist in only one dataset are handled according to
 the join type (dropped, kept, or error).
 
-## Example
+## Exported Functions
 
-``` r
-library(rDataSet)
-library(tibble)
-library(dplyr)
-#> 
-#> Attaching package: 'dplyr'
-#> The following objects are masked from 'package:stats':
-#> 
-#>     filter, lag
-#> The following objects are masked from 'package:base':
-#> 
-#>     intersect, setdiff, setequal, union
+The following functions are exported from the rDataSet package:
 
-# Create datasets with 'i' as the ID column
-# Note: Rows with all-NA values in value columns are automatically dropped
-A <- dataset_build(
-  tibble(i = 1:10, b = if_else(1:10 %% 2 == 0, NA, 1:10), c = 1:10),
-  ids = "i"
-)
-
-B <- dataset_build(
-  tibble(i = 1:10, b = na_if(1:10, 3), c = 11:20),
-  ids = "i"
-)
-
-# Dataset C has fewer rows (1:5) and an extra column 'd'
-C <- dataset_build(
-  tibble(i = 1:5, b = 10:6, d = 2),
-  ids = "i"
-)
-
-# View the datasets
-A
-#> # A tibble: 10 × 3
-#>        i     b     c
-#>    <int> <int> <int>
-#>  1     1     1     1
-#>  2     2    NA     2
-#>  3     3     3     3
-#>  4     4    NA     4
-#>  5     5     5     5
-#>  6     6    NA     6
-#>  7     7     7     7
-#>  8     8    NA     8
-#>  9     9     9     9
-#> 10    10    NA    10
-B
-#> # A tibble: 10 × 3
-#>        i     b     c
-#>    <int> <int> <int>
-#>  1     1     1    11
-#>  2     2     2    12
-#>  3     3    NA    13
-#>  4     4     4    14
-#>  5     5     5    15
-#>  6     6     6    16
-#>  7     7     7    17
-#>  8     8     8    18
-#>  9     9     9    19
-#> 10    10    10    20
-C
-#> # A tibble: 5 × 3
-#>       i     b     d
-#>   <int> <int> <dbl>
-#> 1     1    10     2
-#> 2     2     9     2
-#> 3     3     8     2
-#> 4     4     7     2
-#> 5     5     6     2
-```
-
-### Set Difference
-
-Keep values from A where B has `NA` (uses left join, so all rows from
-A):
-
-``` r
-A - B
-#> # A tibble: 1 × 2
-#>       i     b
-#>   <int> <int>
-#> 1     3     3
-```
-
-Difference with C shows how non-common columns are dropped:
-
-``` r
-A - C  # Only column 'b' remains (common), row ids 1:5 from A
-#> # A tibble: 10 × 3
-#>        i     b     c
-#>    <int> <int> <int>
-#>  1     1    NA     1
-#>  2     2    NA     2
-#>  3     3    NA     3
-#>  4     4    NA     4
-#>  5     5    NA     5
-#>  6     6    NA     6
-#>  7     7     7     7
-#>  8     8    NA     8
-#>  9     9     9     9
-#> 10    10    NA    10
-```
-
-### Set Intersection
-
-Keep values from A where B has non-`NA` values (inner join on rows,
-common columns only):
-
-``` r
-A > B
-#> # A tibble: 10 × 3
-#>        i     b     c
-#>    <int> <int> <int>
-#>  1     1     1     1
-#>  2     2    NA     2
-#>  3     3    NA     3
-#>  4     4    NA     4
-#>  5     5     5     5
-#>  6     6    NA     6
-#>  7     7     7     7
-#>  8     8    NA     8
-#>  9     9     9     9
-#> 10    10    NA    10
-```
-
-Intersection with C - note only rows 1:5 and column ‘b’ are kept:
-
-``` r
-A > C
-#> # A tibble: 5 × 2
-#>       i     b
-#>   <int> <int>
-#> 1     1     1
-#> 2     2    NA
-#> 3     3     3
-#> 4     4    NA
-#> 5     5     5
-```
-
-### Set Union
-
-Combine values from both datasets (full join on rows, all columns):
-
-``` r
-A + B
-#> # A tibble: 10 × 3
-#>        i     b     c
-#>    <int> <int> <int>
-#>  1     1     1     1
-#>  2     2     2     2
-#>  3     3     3     3
-#>  4     4     4     4
-#>  5     5     5     5
-#>  6     6     6     6
-#>  7     7     7     7
-#>  8     8     8     8
-#>  9     9     9     9
-#> 10    10    10    10
-```
-
-Union with C - includes all rows (1:10) and all columns (b, c, d):
-
-``` r
-A + C
-#> # A tibble: 10 × 4
-#>        i     b     c     d
-#>    <int> <int> <int> <dbl>
-#>  1     1     1     1     2
-#>  2     2     9     2     2
-#>  3     3     3     3     2
-#>  4     4     7     4     2
-#>  5     5     5     5     2
-#>  6     6    NA     6    NA
-#>  7     7     7     7    NA
-#>  8     8    NA     8    NA
-#>  9     9     9     9    NA
-#> 10    10    NA    10    NA
-```
-
-### Set Equality
-
-Compare datasets cell-by-cell (requires matching rows and columns):
-
-``` r
-A == A  # All TRUE (or NA for missing values)
-#> # A tibble: 10 × 3
-#>        i b     c    
-#>    <int> <lgl> <lgl>
-#>  1     1 TRUE  TRUE 
-#>  2     2 NA    TRUE 
-#>  3     3 TRUE  TRUE 
-#>  4     4 NA    TRUE 
-#>  5     5 TRUE  TRUE 
-#>  6     6 NA    TRUE 
-#>  7     7 TRUE  TRUE 
-#>  8     8 NA    TRUE 
-#>  9     9 TRUE  TRUE 
-#> 10    10 NA    TRUE
-A == B  # Shows which cells match
-#> # A tibble: 10 × 3
-#>        i b     c    
-#>    <int> <lgl> <lgl>
-#>  1     1 TRUE  FALSE
-#>  2     2 FALSE FALSE
-#>  3     3 FALSE FALSE
-#>  4     4 FALSE FALSE
-#>  5     5 TRUE  FALSE
-#>  6     6 FALSE FALSE
-#>  7     7 TRUE  FALSE
-#>  8     8 FALSE FALSE
-#>  9     9 TRUE  FALSE
-#> 10    10 FALSE FALSE
-```
-
-Equality fails with mismatched rows or columns:
-
-``` r
-A == C  # Error: rows and columns don't match
-#> Error in dataset_equality(a, b): cols don't align
-#>  cols left: ibc
-#>  cols right: ibd
-```
-
-## Helper Functions
-
-``` r
-# Extract ID columns
-ids(A)
-#> # A tibble: 10 × 1
-#>        i
-#>    <int>
-#>  1     1
-#>  2     2
-#>  3     3
-#>  4     4
-#>  5     5
-#>  6     6
-#>  7     7
-#>  8     8
-#>  9     9
-#> 10    10
-
-# Extract value columns (non-ID columns)
-vals(A)
-#> # A tibble: 10 × 2
-#>        b     c
-#>    <int> <int>
-#>  1     1     1
-#>  2    NA     2
-#>  3     3     3
-#>  4    NA     4
-#>  5     5     5
-#>  6    NA     6
-#>  7     7     7
-#>  8    NA     8
-#>  9     9     9
-#> 10    NA    10
-```
-
-## Mathematical Properties
-
-The set operations satisfy the fundamental identity:
-`a = (a n b) u (a / b)`
-
-``` r
-# Verify: A == (A > B) + (A - B)
-all(vals(A == (A > B) + (A - B)), na.rm = TRUE)
-#> [1] TRUE
-```
+- `dataset_build`: Builds a dataset object from a data frame and a
+  vector of identifier column names. This function creates a properly
+  formatted dataset object with metadata about the identifier columns,
+  value columns, and the dataset’s current state (wide, long, or
+  decomposed). It ensures that the identifier columns uniquely identify
+  each row.
+- `empty_set`: Returns a dataset with zero rows and zero ID columns.
+  This utility function creates a blank dataset that can be used as a
+  starting point or placeholder in various operations.
+- `select_ids`: Keeps only the rows associated with the specified
+  identifier columns. This function allows selective filtering of
+  datasets based on identifier values using tidy selection syntax.
+- `merge_with`: Combines two datasets using a flexible set operation and
+  precedence rule. This is the core function that enables all dataset
+  operations, allowing users to specify which set operation to perform
+  and how to handle conflicts between datasets.
+- `mask_with`: Keeps only the cells in the first dataset that are also
+  present in the second. This function acts like a mask, preserving only
+  the data points that exist in both datasets.
+- `fill_with`: Replaces `NA` cells in one dataset with values from
+  another. This function is helpful when you have partially filled
+  datasets and want to supplement missing values with data from another
+  source.
+- `intersect_with`: Keeps only the cells in the first dataset for which
+  there is a corresponding non-`NA` cell in the second. This operation
+  focuses on maintaining only the overlapping valid data between two
+  datasets.
+- `to_decomposed`: Converts a dataset to decomposed format. This
+  function transforms a dataset into a hierarchical structure where it’s
+  broken down into smaller, manageable pieces based on identifier
+  relationships.
+- `to_long`: Converts a dataset to long format. This operation reshapes
+  datasets from wide format to long format, making it easier to perform
+  certain types of analyses.
+- `to_wide`: Converts a dataset to wide format. This is the inverse of
+  `to_long`, reshaping datasets from long format back to wide format.
+- `dataset_diff`: Compares two datasets cell-by-cell and returns only
+  rows where they differ. This function is useful for identifying
+  changes between different versions of datasets or comparing datasets
+  for discrepancies.
+- `dataset_collapse`: Removes rows and columns that contain only missing
+  values (`NA`). This function helps clean up datasets by eliminating
+  empty rows and columns, making the dataset more concise and easier to
+  work with.
+- `dataset_frame`: Creates a copy of the dataset where every value is
+  replaced by `TRUE`. This function is useful for creating a logical
+  representation of a dataset that shows which cells contain valid data.
+- `dataset_transfrom`: Converts a dataset to a given state (wide, long,
+  decomposed). This versatile function provides an easy way to change
+  the structure of datasets between different formats depending on the
+  analysis needs.
+- `ds_filter`: Applies a conjunction of **dplyr** filter expressions to
+  the dataset. This function allows filtering datasets using standard
+  dplyr syntax while maintaining the dataset’s structure and metadata.
+- `dataset_equality`: Compares two datasets cell-by-cell and returns
+  `TRUE` if they are identical. This function provides a simple way to
+  verify that two datasets contain exactly the same data.
+- `dataset_intersect`: Keeps cells from the first dataset that also
+  exist in the second. This operation is particularly useful when you
+  want to find common elements between two datasets.
+- `dataset_minus`: Returns cells from the first dataset that are missing
+  (or differ) in the second. This function finds the difference between
+  datasets, specifically items that exist in the first dataset but not
+  in the second.
+- `dataset_union`: Returns all cells present in either dataset, giving
+  precedence to the first. This operation allows combining datasets
+  while prioritizing values from the first dataset when conflicts occur.
 
 ## License
 
-GPL (>= 3)
+GPL (\>= 3)
