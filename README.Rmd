@@ -18,14 +18,14 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-rDataSet is introduces a new S3 style dataset object. A dataset is nothing else but a tibble with id columns. Where the id columns like in a relational database must uniqely define each row. But instead of following the path of relational databases. From here on the focus is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as an output. When merging we have three disticnt parts. The rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide wether we want to keep them in in the result. Further we have to decide for the intersection wether we take the values from left, from right or apply some other function to merge the two (maybe disallow this function thing as we never know what type of data we need to merge, left right is the only safe function?).
+rDataSet introduces a new S3-style dataset object. A dataset is nothing more than a tibble with identifier columns. The identifier columns, like in a relational database, must uniquely define each row. Instead of following the path of relational databases, the focus here is on dataset merging. Merging in this context means we have two datasets with some overlapping domain and we want to get a single dataset as output. When merging we have three distinct parts: the rows only present in the left side, the intersection, and the rows only present on the right side. For each we can decide whether we want to keep them in the result. Further, we have to decide for the intersection whether we take the values from left, from right, or apply some other function to merge the two (perhaps disallowing this function thing since we never know what type of data we need to merge; left/right is the only safe function).
 
-i have the fear that this actually just could be a join with some merge function. and that all the other blabber is for nothing. well i still think that masking is a nice feature. and dropping ids seems realy cool. but we might actually reduce the whole thing to a ids_by functions similar to group by?
-well i still have some nice features which i want to cover. maybe this fear hints at the possibilty to include the ids into the function like, mask_with(a,b,ids=...) which would make the step of creating the datasets obsolete in the first place.
+I have the fear that this actually just could be a join with some merge function, and that all the other blabber is for nothing. Well, I still think that masking is a nice feature, and dropping IDs seems really cool. But we might actually reduce the whole thing to `ids_by` functions similar to `group_by`.
 
-- writing datasets as readable text files. (maybe its own project -> its own project)
-- having piped data control e.g. through hashing (identity), or less restrictiv messures, e.g. through a mask with catch all behaviour. (certainly its own project)
-so what are the goals until we say this is complete. I think we have discoverd some fancy transformations the long, wide and decomposed data formats. I'm afraid that these are too low level to every be used in a daily case. But we can build some usefull functions on top of them like, mask_with, and select_ids(). It might also be more than helpfull for text representations. 
+- Writing datasets as readable text files. (maybe its own project -> its own project)
+- Having piped data control e.g. through hashing (identity), or less restrictive measures, e.g. through a mask with catch-all behavior. (certainly its own project)
+
+So what are the goals until we say this is complete? I think we have discovered some fancy transformations between the long, wide, and decomposed data formats. I'm afraid that these are too low-level to ever be used in a daily case. But we can build some useful functions on top of them like `mask_with` and `select_ids()`. It might also be very helpful for text representations.
 
 In application this might look like this:
 ```R
@@ -33,7 +33,7 @@ In application this might look like this:
 dataset <- tibble(id = 1:4, id2 = c(1,1,2,2) , vals = c("cow", "horse", "car", NA), vals2 = c("animal", "animal", "other", "other")) %>%
   dataset_build(ids = c("id", "id2"))
 
-# in fact we have to cats. instead of recoding directly in the data we create a patch
+# in fact we have two cats. instead of recoding directly in the data we create a patch
 patch <- tibble(id2 = 2:3, vals = c("cat", "dog")) %>%
   dataset_build(ids = c("id2"))
 
@@ -42,7 +42,7 @@ dataset %>%
   mask_with(patch)
 
 # another fancy thing is to drop id columns
-# only value columns which are functionaly dependent on the
+# only value columns which are functionally dependent on the
 # selected id cols will remain in the dataset.
 dataset %>%
   select_ids(-id) # tidy select on ids
@@ -52,7 +52,7 @@ dataset %>%
 ```
 
 ```R
-# we can merge two datasets with a set operation and specifing a precedence
+# we can merge two datasets with a set operation and specifying a precedence
 # empty values are dropped by default.
 dataset %>%
   merge_with(patch, set_op = "setdiff", prec = "left")
@@ -79,7 +79,7 @@ install.packages("/path/to/rDataSet", repo = NULL, type = "source")
 
 ## Set Operations
 
-Set Operations look real cool but I'm pivoting away from using operators like `+` as documentation of these functions is hard and it is impossible to set any flags. Similar goals can be achieved with pipe style opperations like `|> mask_with()` which is more readable allows for altering behaviour through flags and can be documented. All functionalities from below are captured in `merge_with` with the apropriate flags.
+Set Operations look really cool, but I'm pivoting away from using operators like `+` as documentation of these functions is hard, and it is impossible to set any flags. Similar goals can be achieved with pipe-style operations like `|> mask_with()` which is more readable, allows for altering behavior through flags, and can be documented. All functionalities from below are captured in `merge_with` with the appropriate flags.
 
 - `+` `merge_with(a,b, set_op = "union", "left")`
 - `-` `merge_with(a,b, set_op = "setdiff", "left")`
@@ -87,8 +87,8 @@ Set Operations look real cool but I'm pivoting away from using operators like `+
 
 Each set operation works in two stages:
 
-1. **Row/Column Alignment**: Determines which rows and columns appear in the result
-2. **Value Operation**: Decides which values to keep for each cell
+1.  **Row/Column Alignment**: Determines which rows and columns appear in the result
+2.  **Value Operation**: Decides which values to keep for each cell
 
 | Operation | Rows in Result | Columns in Result | Value Operation |
 |-----------|----------------|-------------------|-----------------|
@@ -99,6 +99,35 @@ Each set operation works in two stages:
 
 **Note**: ID columns must match between datasets for all operations. Value columns that exist in only one dataset are handled according to the join type (dropped, kept, or error).
 
+## Exported Functions
+
+The following functions are exported from the rDataSet package:
+
+- `dataset_build`: Builds a dataset object from a data frame and a vector of identifier column names.
+- `dataset_collapse`: Removes rows and columns that contain only missing values (`NA`).
+- `dataset_compose`: Composes a list of datasets into a wide format dataset.
+- `dataset_decompose`: Decomposes a wide or long dataset into a list of child datasets.
+- `dataset_diff`: Compares two datasets cell-by-cell and returns only rows where they differ.
+- `dataset_equality`: Compares two datasets cell-by-cell and returns `TRUE` if they are identical.
+- `dataset_frame`: Creates a copy of the dataset where every value is replaced by `TRUE`.
+- `dataset_intersect`: Keeps cells from the first dataset that also exist in the second.
+- `dataset_minus`: Returns cells from the first dataset that are missing (or differ) in the second.
+- `dataset_union`: Returns all cells present in either dataset, giving precedence to the first.
+- `dataset_transfrom`: Converts a dataset to a given state (wide, long, decomposed).
+- `ds_filter`: Applies a conjunction of **dplyr** filter expressions to the dataset.
+- `empty_set`: Returns a dataset with zero rows and zero ID columns.
+- `fill_with`: Replaces `NA` cells in one dataset with values from another.
+- `intersect_with`: Keeps only the cells in the first dataset for which there is a corresponding non-`NA` cell in the second.
+- `long_to_wide`: Converts a dataset from long format to wide format.
+- `mask_with`: Keeps only the cells in the first dataset that are also present in the second.
+- `merge_with`: Combines two datasets using a flexible set operation and precedence rule.
+- `select_ids`: Keeps only the rows associated with the specified identifier columns.
+- `to_decomposed`: Converts a dataset to decomposed format.
+- `to_long`: Converts a dataset to long format.
+- `to_wide`: Converts a dataset to wide format.
+- `wide_to_long`: Converts a dataset from wide format to long format.
+
 ## License
 
 GPL (>= 3)
+```
