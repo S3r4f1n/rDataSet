@@ -82,6 +82,10 @@ empty_cols <- function(dataset) {
   c(rep(FALSE, length(id_cols(dataset))), cols)
 }
 
+is_dataset <- function(ds) {
+  "dataset" %in% class(ds)
+}
+
 #' Collapse a dataset
 #'
 #' Removes rows and columns that contain only missing values (`NA`). This

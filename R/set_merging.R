@@ -145,8 +145,20 @@ merge_with <- function(
   set_op = c("left", "right", "setdiff", "symdiff", "intersect", "union"),
   prec = c("left", "right"),
   strict = c("equal", "greater", "less"),
-  keep = FALSE
+  keep = FALSE,
+  ids = NULL
 ) {
+  # build datsets on the fly
+  if (!is.null(ids)) {
+    if (is_dataset(a) || is_dataset(b)) {
+      warning(
+        "ids have been specified and datasets have been provided. only specified ids are used"
+      )
+    }
+    a <- dataset_build(a, ids)
+    b <- dataset_build(b, ids)
+  }
+
   merg_helper(
     a,
     b,

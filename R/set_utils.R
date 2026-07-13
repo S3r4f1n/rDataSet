@@ -55,11 +55,20 @@ ds_filter <- function(ds, ...) {
 #' @return A dataset containing only the selected identifiers, in the same
 #'   state as `ds`.
 #' @export
-select_ids <- function(ds, ...) {
-  dots <- enquos(...)
-  ids <- select(select(ds, all_of(id_cols(ds))), !!!dots) |> names()
+select_ids <- function(ds, ..., ids = NULL) {
+  if (!is.null(ids)) {
+    if (is_dataset(ds)) {
+      warning(
+        "ids have been specified and datasets have been provided. only specified ids are used"
+      )
+    }
+    ds <- dataset_build(ds, ids)
+  }
 
-  decomp <- to_decomposed(ds, strategy = selected_paths_builder(ids))
+  dots <- enquos(...)
+  ids_selected <- select(select(ds, all_of(id_cols(ds))), !!!dots) |> names()
+
+  decomp <- to_decomposed(ds, strategy = selected_paths_builder(ids_selected))
   selected <- dataset_get_composed(decomp, 1)
   dataset_transfrom(selected, state(ds))
 }
@@ -73,14 +82,15 @@ select_ids <- function(ds, ...) {
 #' @param b A dataset object.
 #' @return A dataset containing intersection values from `a`.
 #' @export
-intersect_with <- function(a, b) {
+intersect_with <- function(a, b, ids = NULL) {
   merge_with(
     a,
     b,
     set_op = "intersect",
     prec = "left",
     strict = c("equal", "greater"),
-    keep = FALSE
+    keep = FALSE,
+    ids = ids
   )
 }
 
@@ -95,13 +105,14 @@ intersect_with <- function(a, b) {
 #'   values for which `a` has entries. Default `TRUE`.
 #' @return A masked dataset.
 #' @export
-mask_with <- function(a, b, framed = TRUE) {
+mask_with <- function(a, b, framed = TRUE, ids = NULL) {
   merged <- merge_with(
     a,
     b,
     set_op = "union",
     prec = "right",
     strict = c("equal", "greater"),
+    ids = ids
   )
 
   if (framed) {
@@ -123,13 +134,14 @@ mask_with <- function(a, b, framed = TRUE) {
 #'   values for which `a` has entries. Default `TRUE`.
 #' @return A filled dataset.
 #' @export
-fill_with <- function(a, b, framed = TRUE) {
+fill_with <- function(a, b, framed = TRUE, ids = NULL) {
   merged <- merge_with(
     a,
     b,
     set_op = "union",
     prec = "left",
     strict = c("equal", "greater"),
+    ids = ids
   )
 
   if (framed) {
